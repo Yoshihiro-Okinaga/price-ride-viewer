@@ -12,7 +12,7 @@ export const CONFIG = {
     cameraFov: 75,
     cameraNear: 0.1,
     cameraFar: 20000,
-    maxPixelRatio: 2
+    maxPixelRatio: 1
   },
 
   lighting: {
@@ -146,7 +146,7 @@ export const CONFIG = {
   },
 
   camera: {
-    rideHeight: 6,
+    rideHeight: 3,
     lookAtYOffset: 2,
     lookAtZOffset: 14
   },

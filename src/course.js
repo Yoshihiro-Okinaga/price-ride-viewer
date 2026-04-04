@@ -458,6 +458,8 @@ export async function buildCourseFromUI() {
         ? '明るい遊園地'
         : buildSettings.theme === 'analysis'
           ? '解析モード'
+          : buildSettings.theme === 'cityNight'
+          ? '都会の夜景'
           : '宇宙',
     showHeightGuides: buildSettings.showHeightGuides
   };

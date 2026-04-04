@@ -75,6 +75,30 @@ const THEMES = {
     backgroundKind: 'analysis',
     guideColor: 0x0000ff,
     guideOpacity: 0.25
+  },
+
+  cityNight: {
+    sceneBackground: 0x05070d,
+    fogColor: 0x0b1020,
+    fogDensity: 0.00018,
+    ground: {
+      opacity: 0.98,
+      backgroundColor: '#0b0f18',
+      gradTop: 'rgba(120,160,255,0.10)',
+      gradMid: 'rgba(0,0,0,0.00)',
+      gradBottom: 'rgba(255,120,180,0.06)',
+      gridColor: 'rgba(180,210,255,0.18)',
+      glowDotColor: 'rgba(255,220,120,0.05)',
+      cells: 14
+    },
+    lighting: {
+      directional: { color: 0xeaf0ff, intensity: 0.95 },
+      ambient: { color: 0x98a8d8, intensity: 0.78 },
+      point: { color: 0xffd080, intensity: 0.65 }
+    },
+    backgroundKind: 'cityNight',
+    guideColor: 0x8fc4ff,
+    guideOpacity: 0.28
   }
 };
 
@@ -323,18 +347,15 @@ function createStars() {
   );
 
   const positions = new Float32Array(count * 3);
-  const sizes = new Float32Array(count);
 
   for (let i = 0; i < count; i++) {
     positions[i * 3 + 0] = (Math.random() - 0.5) * Math.max(starConfig.rangeX, metrics.width * 9);
     positions[i * 3 + 1] = starConfig.minY + Math.random() * Math.max(starConfig.rangeY, metrics.maxY * 3.2 + 1200);
     positions[i * 3 + 2] = -metrics.frontPad + Math.random() * (metrics.depth + metrics.backPad);
-    sizes[i] = 1.0 + Math.random() * 2.5;
   }
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
 
   const mat = new THREE.PointsMaterial({
     color: 0xf6fbff,
@@ -628,6 +649,121 @@ function createAmusementSkyline() {
   return group;
 }
 
+function createCityBuilding(index, z, side, xOffset, heightFactor) {
+  const group = new THREE.Group();
+
+  const width = 34 + pseudoRandom(index + 1000) * 90;
+  const depth = 28 + pseudoRandom(index + 1001) * 70;
+  const height = 90 + pseudoRandom(index + 1002) * (180 + heightFactor * 140);
+
+  const bodyGeo = new THREE.BoxGeometry(width, height, depth);
+  const bodyMat = new THREE.MeshLambertMaterial({
+    color: index % 3 === 0 ? 0x1a1f2e : (index % 3 === 1 ? 0x101827 : 0x202636),
+    emissive: 0x06080d,
+    emissiveIntensity: 0.35
+  });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = height / 2;
+  group.add(body);
+
+  const cols = Math.max(2, Math.floor(width / 14));
+  const rows = Math.max(4, Math.floor(height / 16));
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (pseudoRandom(index * 200 + r * 31 + c * 17) < 0.85) continue;
+
+      const winGeo = new THREE.PlaneGeometry(5, 7);
+      const warm = pseudoRandom(index * 300 + r * 11 + c * 7);
+      const color = warm < 0.5 ? 0xffd77a : (warm < 0.8 ? 0x9fd3ff : 0xff9ecf);
+
+      const winMat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.9
+      });
+
+      const front = new THREE.Mesh(winGeo, winMat);
+      front.position.set(
+        -width / 2 + 10 + c * ((width - 20) / Math.max(1, cols - 1)),
+        10 + r * ((height - 20) / Math.max(1, rows - 1)),
+        depth / 2 + 0.2
+      );
+      group.add(front);
+
+      const back = new THREE.Mesh(winGeo, winMat);
+      back.position.set(front.position.x, front.position.y, -depth / 2 - 0.2);
+      back.rotation.y = Math.PI;
+      group.add(back);
+    }
+  }
+
+  if (pseudoRandom(index + 1003) > 0.55) {
+    const antennaHeight = 16 + pseudoRandom(index + 1004) * 34;
+    const antennaGeo = new THREE.CylinderGeometry(0.8, 0.8, antennaHeight, 6);
+    const antennaMat = new THREE.MeshLambertMaterial({ color: 0xaab4c8 });
+    const antenna = new THREE.Mesh(antennaGeo, antennaMat);
+    antenna.position.set(0, height + antennaHeight / 2, 0);
+    group.add(antenna);
+
+    const beaconGeo = new THREE.SphereGeometry(2.4, 8, 8);
+    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff4d6d });
+    const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+    beacon.position.set(0, height + antennaHeight + 2, 0);
+    group.add(beacon);
+  }
+
+  group.position.set(side * xOffset, 0, z);
+  return group;
+}
+
+function createStreetLamp(index, z, side, xOffset, heightFactor) {
+  const lampGroup = new THREE.Group();
+
+  const poleHeight = 20 + pseudoRandom(index + 1400) * 18 + heightFactor * 4;
+
+  const poleGeo = new THREE.CylinderGeometry(1.2, 1.5, poleHeight, 8);
+  const poleMat = new THREE.MeshLambertMaterial({ color: 0xb8c2d6 });
+  const pole = new THREE.Mesh(poleGeo, poleMat);
+  pole.position.y = poleHeight / 2;
+  lampGroup.add(pole);
+
+  const headGeo = new THREE.SphereGeometry(3.8, 10, 10);
+  const headMat = new THREE.MeshBasicMaterial({ color: 0xffd58a });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = poleHeight + 2.5;
+  lampGroup.add(head);
+
+  lampGroup.position.set(side * xOffset, 0, z);
+  return lampGroup;
+}
+
+function createCityNightScenery() {
+  const group = new THREE.Group();
+  const metrics = getBackgroundMetrics();
+
+  const laneSpacing = 300;
+  const laneCount = Math.max(18, Math.ceil((metrics.depth + 400) / laneSpacing));
+  const baseX = Math.max(120, metrics.width * 0.36);
+
+  for (let i = 0; i < laneCount; i++) {
+    const z = 80 + i * laneSpacing;
+
+    const leftX = baseX + pseudoRandom(i + 1500) * 120;
+    const rightX = baseX + pseudoRandom(i + 1600) * 120;
+
+    group.add(createCityBuilding(i * 2, z, -1, leftX, metrics.heightFactor));
+    group.add(createCityBuilding(i * 2 + 1, z + 30, 1, rightX, metrics.heightFactor));
+
+    if (i % 2 === 0) {
+      group.add(createStreetLamp(i * 2, z + 20, -1, Math.max(80, metrics.width * 0.22), metrics.heightFactor));
+      group.add(createStreetLamp(i * 2 + 1, z - 10, 1, Math.max(80, metrics.width * 0.22), metrics.heightFactor));
+    }
+  }
+
+  return group;
+}
+
 function createAnalysisBackdrop() {
   const group = new THREE.Group();
   const metrics = getBackgroundMetrics();
@@ -702,6 +838,10 @@ export function createBackground() {
     const backdrop = createAnalysisBackdrop();
     backdrop.userData.kind = 'analysis';
     backgroundGroup.add(backdrop);
+  } else if (theme.backgroundKind === 'cityNight') {
+    const city = createCityNightScenery();
+    city.userData.kind = 'cityNight';
+    backgroundGroup.add(city);
   }
 
   app.scene.add(backgroundGroup);
@@ -797,7 +937,7 @@ export function updateCameraPosition(curve, t, lookAhead) {
   const dz = look.z - pos.z;
 
   if (app.xr.isPresenting && app.cameraRig) {
-    const yaw = Math.atan2(dx, dz);
+    const yaw = Math.atan2(dx, dz) + Math.PI;
     app.cameraRig.rotation.set(0, yaw, 0);
   } else {
     app.camera.lookAt(
