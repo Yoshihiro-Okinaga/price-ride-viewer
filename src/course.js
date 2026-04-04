@@ -356,7 +356,7 @@ export function calcAutoBuildParams(rows) {
   heightScale = roundNice(heightScale);
   heightScale = clamp(heightScale, 0.0001, 1000000000);
 
-  let zStep = 22000 / Math.max(count - 1, 1);
+  let zStep = 5000 / Math.max(count - 1, 1);
   zStep = clamp(zStep, 8, 160);
   zStep = Math.round(zStep);
 
