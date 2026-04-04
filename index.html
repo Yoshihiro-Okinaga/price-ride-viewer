@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ride Viewer</title>
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <button id="toggleUiButton">UIを隠す</button>
+
+  <div id="ui">
+    <div><strong>Ride Viewer 2026-04-01 TEST</strong></div>
+
+    <label>CSVファイル</label>
+    <input type="file" id="fileInput" accept=".csv" />
+
+    <label>開始日</label>
+    <input type="date" id="startDate" value="2025-06-01" />
+
+    <label>高さの拡大率（終値差分 × この値）</label>
+    <input type="number" id="heightScale" value="1000" step="100" />
+
+    <label>Z方向の間隔</label>
+    <input type="number" id="zStep" value="80" step="1" />
+
+    <label>高さ・Z間隔を自動調整</label>
+    <input type="checkbox" id="autoScale" checked />
+
+    <label>移動速度</label>
+    <input type="number" id="rideSpeed" value="0.01" step="0.01" />
+
+    <label>視線の先読み量</label>
+    <input type="number" id="lookAhead" value="0.01" step="0.001" />
+
+    <label>価格の反転</label>
+    <input type="checkbox" id="invertPrice" />
+
+    <label>背景テーマ</label>
+    <select id="themeSelect">
+      <option value="space">宇宙</option>
+      <option value="amusement">明るい遊園地</option>
+      <option value="analysis">解析モード</option>
+    </select>
+
+    <label>高さガイドを表示</label>
+    <input type="checkbox" id="showHeightGuides" checked />
+
+    <button id="buildButton">コースを作る</button>
+
+    <div id="status">CSVを選んで「コースを作る」を押してください。</div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
