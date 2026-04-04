@@ -26,6 +26,7 @@ canvas {
 }
 
 #ui input,
+#ui select,
 #ui button {
   width: 100%;
   box-sizing: border-box;

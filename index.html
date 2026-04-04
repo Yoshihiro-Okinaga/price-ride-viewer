@@ -11,8 +11,43 @@
   <div id="ui">
     <div><strong>Ride Viewer 2026-04-01 TEST</strong></div>
 
-    <label>CSVファイル</label>
-    <input type="file" id="fileInput" accept=".csv" />
+    <label>CSVファイル（stock-data）</label>
+    <select id="csvSelect">
+      <option value="">選択してください</option>
+
+      <optgroup label="FXCFD">
+        <option value="./stock-data/FXCFD/USD_JPY.csv">FXCFD / USD_JPY</option>
+        <option value="./stock-data/FXCFD/EUR_USD.csv">FXCFD / EUR_USD</option>
+        <option value="./stock-data/FXCFD/GBP_USD.csv">FXCFD / GBP_USD</option>
+        <option value="./stock-data/FXCFD/GOLD_USD.csv">FXCFD / GOLD_USD</option>
+        <option value="./stock-data/FXCFD/JAPAN255_Futures.csv">FXCFD / JAPAN255_Futures</option>
+      </optgroup>
+
+      <optgroup label="FXCFD / Sub">
+        <option value="./stock-data/FXCFD/Sub/EUR_JPY.csv">FXCFD / Sub / EUR_JPY</option>
+        <option value="./stock-data/FXCFD/Sub/GBP_JPY.csv">FXCFD / Sub / GBP_JPY</option>
+        <option value="./stock-data/FXCFD/Sub/AUD_JPY.csv">FXCFD / Sub / AUD_JPY</option>
+        <option value="./stock-data/FXCFD/Sub/TRY_JPY.csv">FXCFD / Sub / TRY_JPY</option>
+      </optgroup>
+
+      <optgroup label="Stock">
+        <option value="./stock-data/Stock/日経平均.csv">Stock / 日経平均</option>
+        <option value="./stock-data/Stock/6752_パナソニック.csv">Stock / 6752_パナソニック</option>
+        <option value="./stock-data/Stock/5401_日本製鉄.csv">Stock / 5401_日本製鉄</option>
+        <option value="./stock-data/Stock/8802_三菱地所.csv">Stock / 8802_三菱地所</option>
+      </optgroup>
+
+      <optgroup label="Stock / Sub">
+        <option value="./stock-data/Stock/Sub/9697_カプコン.csv">Stock / Sub / 9697_カプコン</option>
+        <option value="./stock-data/Stock/Sub/7201_日産自動車.csv">Stock / Sub / 7201_日産自動車</option>
+        <option value="./stock-data/Stock/Sub/8001_伊藤忠商事.csv">Stock / Sub / 8001_伊藤忠商事</option>
+      </optgroup>
+
+      <optgroup label="Stock / Verification">
+        <option value="./stock-data/Stock/Verification/9501_東京電力ホールディングス.csv">Stock / Verification / 9501_東京電力ホールディングス</option>
+        <option value="./stock-data/Stock/Verification/9503_関西電力.csv">Stock / Verification / 9503_関西電力</option>
+      </optgroup>
+    </select>
 
     <label>開始日</label>
     <input type="date" id="startDate" value="2026-01-01" />

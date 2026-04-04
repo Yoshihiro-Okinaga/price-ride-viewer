@@ -52,8 +52,7 @@ function render() {
   app.renderer.render(app.scene, app.camera);
 }
 
-function animate() {
-  requestAnimationFrame(animate);
+function tick() {
   animateBackground();
   updateRide();
   render();
@@ -87,7 +86,7 @@ function setupEvents() {
     }
   });
 
-  ui.fileInput.addEventListener('change', async () => {
+  ui.csvSelect.addEventListener('change', async () => {
     await refreshAutoScalePreviewIfNeeded();
   });
 
@@ -152,13 +151,18 @@ function setupEvents() {
 }
 
 function init() {
-  syncStateFromUI();
+  try {
+    syncStateFromUI();
+  } catch {
+    // csv未選択でも初期表示は通す
+  }
+
   createSceneObjects();
   createGround();
   createBackground();
   setUiVisible(true);
   setupEvents();
-  animate();
+  app.renderer.setAnimationLoop(tick);
 }
 
 init();

@@ -3,7 +3,12 @@ import { CONFIG } from './config.js';
 import { app } from './state.js';
 import { ui, getBuildSettingsFromUI, updateStatus } from './ui.js';
 import { disposeObject3D, getPosYByPrice, toDateTextLocal } from './utils.js';
-import { parseCSV, filterRowsByStartDate, buildCoursePoints, readSelectedFileText } from './data.js';
+import {
+  parseCSV,
+  filterRowsByStartDate,
+  buildCoursePoints,
+  readCsvTextFromUrl
+} from './data.js';
 import {
   createBackground,
   updateCameraPosition,
@@ -376,13 +381,11 @@ export function applyAutoBuildParamsToUI(autoParams) {
 }
 
 export async function previewAutoBuildParamsFromCurrentInput() {
-  const file = ui.fileInput.files[0];
-  if (!file) return;
-
   const startDateText = ui.startDateInput.value.trim();
   if (!startDateText) return;
+  if (!ui.csvSelect.value) return;
 
-  const csvText = await file.text();
+  const csvText = await readCsvTextFromUrl(ui.csvSelect.value);
   const allRows = parseCSV(csvText);
   const filteredRows = filterRowsByStartDate(allRows, startDateText);
 
@@ -397,7 +400,7 @@ export async function buildCourseFromUI() {
 
   const buildSettings = getBuildSettingsFromUI();
 
-  const csvText = await readSelectedFileText();
+  const csvText = await readCsvTextFromUrl(buildSettings.csvUrl);
   const allRows = parseCSV(csvText);
   const filteredRows = filterRowsByStartDate(allRows, buildSettings.startDateText);
 

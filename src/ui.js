@@ -1,10 +1,9 @@
-import { CONFIG } from './config.js';
 import { app } from './state.js';
 import { readNumber } from './utils.js';
 
 export const ui = {
   panel: document.getElementById('ui'),
-  fileInput: document.getElementById('fileInput'),
+  csvSelect: document.getElementById('csvSelect'),
   startDateInput: document.getElementById('startDate'),
   heightScaleInput: document.getElementById('heightScale'),
   zStepInput: document.getElementById('zStep'),
@@ -43,8 +42,13 @@ export function getBuildSettingsFromUI() {
     autoScale: ui.autoScaleInput.checked,
     invertPrice: ui.invertPriceInput.checked,
     theme: ui.themeSelect.value,
-    showHeightGuides: ui.showHeightGuidesInput.checked
+    showHeightGuides: ui.showHeightGuidesInput.checked,
+    csvUrl: ui.csvSelect.value
   };
+
+  if (!settings.csvUrl) {
+    throw new Error('CSVファイルを選択してください。');
+  }
 
   if (settings.zStep <= 0) {
     throw new Error('Z方向の間隔は 0 より大きい必要があります。');
@@ -89,14 +93,13 @@ export function updateStatus() {
       `件数: ${info.rowCount}`,
       `期間: ${info.firstDate} ～ ${info.lastDate}`,
       `基準終値（${info.invertPrice ? '高値' : '安値'}）: ${info.baseClose.toFixed(5)}`,
-      `高さ = (終値 - 基準終値) × ${info.heightScale}`,
-      `Z方向の間隔: ${info.zStep}`,
+      `高さ倍率: ${info.heightScale}`,
+      `Z間隔: ${info.zStep}`,
       `コース最大高さ(Y): ${info.maxY.toFixed(1)}`,
-      `地面サイズ: 幅 ${info.groundWidth}, 奥行 ${info.groundDepth}`,
+      `地面サイズ: ${info.groundWidth} x ${info.groundDepth}`,
+      `自動調整: ${info.autoScale ? 'ON' : 'OFF'}`,
       `期間最安値: ${info.minClose.toFixed(5)}`,
       `期間最高値: ${info.maxClose.toFixed(5)}`,
-      `自動調整: ${info.autoScale ? 'ON' : 'OFF'}`,
-      `枕木間隔: ${CONFIG.sleeper.spacing}`,
       `視線先読み量: ${runtime.lookAhead}`,
       `移動速度: ${runtime.rideSpeed}`,
       `価格の反転: ${info.invertPrice ? '反転' : '通常'}`,
