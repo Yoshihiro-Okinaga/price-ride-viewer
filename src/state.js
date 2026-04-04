@@ -4,8 +4,14 @@ import { CONFIG } from './config.js';
 export const app = {
   scene: null,
   camera: null,
+  cameraRig: null,
   renderer: null,
   clock: new THREE.Clock(),
+
+  xr: {
+    isSupported: false,
+    isPresenting: false
+  },
 
   ground: null,
   backgroundGroup: null,
@@ -26,7 +32,7 @@ export const app = {
   rideT: 0,
 
   buildSettings: {
-    startDateText: '2025-06-01',
+    startDateText: '2026-01-01',
     heightScale: 1000,
     zStep: 80,
     autoScale: true,
@@ -36,7 +42,7 @@ export const app = {
   },
 
   runtimeSettings: {
-    rideSpeed: CONFIG.defaults.rideSpeed,
+    rideSpeed: 0.03,
     lookAhead: CONFIG.defaults.lookAhead
   },
 

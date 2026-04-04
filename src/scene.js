@@ -1,4 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.183.0/build/three.module.js';
+import { VRButton } from 'https://unpkg.com/three@0.183.0/examples/jsm/webxr/VRButton.js';
 import { CONFIG } from './config.js';
 import { app } from './state.js';
 import { disposeObject3D, pseudoRandom } from './utils.js';
@@ -95,10 +96,17 @@ export function createSceneObjects() {
     CONFIG.scene.cameraFar
   );
 
+  const cameraRig = new THREE.Group();
+  cameraRig.add(camera);
+  scene.add(cameraRig);
+
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, CONFIG.scene.maxPixelRatio));
+  renderer.xr.enabled = true;
+
   document.body.appendChild(renderer.domElement);
+  document.body.appendChild(VRButton.createButton(renderer));
 
   const dirLight = new THREE.DirectionalLight(
     theme.lighting.directional.color,
@@ -123,10 +131,29 @@ export function createSceneObjects() {
 
   app.scene = scene;
   app.camera = camera;
+  app.cameraRig = cameraRig;
   app.renderer = renderer;
   app.lights.directional = dirLight;
   app.lights.ambient = ambLight;
   app.lights.point = pointLight;
+
+  if (navigator.xr?.isSessionSupported) {
+    navigator.xr.isSessionSupported('immersive-vr')
+      .then((supported) => {
+        app.xr.isSupported = supported;
+      })
+      .catch(() => {
+        app.xr.isSupported = false;
+      });
+  }
+
+  renderer.xr.addEventListener('sessionstart', () => {
+    app.xr.isPresenting = true;
+  });
+
+  renderer.xr.addEventListener('sessionend', () => {
+    app.xr.isPresenting = false;
+  });
 }
 
 function getGroundTextureConfig() {
@@ -164,15 +191,13 @@ export function getDynamicGroundSize() {
   const widthByHeight = maxY * 1.8;
   const width = Math.max(baseWidth, Math.ceil((baseWidth + widthByHeight) / 20) * 20);
 
-  const frontMargin = 220;
-  const backMargin = Math.max(600, Math.ceil(lastZ * 0.08));
-  const depthRaw = frontMargin + lastZ + backMargin;
-  const depth = Math.max(3000, Math.ceil(depthRaw / 100) * 100);
+  const baseDepth = 3000;
+  const depth = Math.max(baseDepth, Math.ceil((lastZ + 1000) / 100) * 100);
 
   return { width, depth };
 }
 
-export function createGroundTexture() {
+function createGroundTexture() {
   const textureConfig = getGroundTextureConfig();
   const size = textureConfig.size;
 
@@ -224,7 +249,13 @@ export function createGroundTexture() {
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(textureConfig.repeatX, textureConfig.repeatZ);
+
+  const groundSize = getDynamicGroundSize();
+  texture.repeat.set(
+    Math.max(8, Math.round(groundSize.width / 40)),
+    Math.max(20, Math.round(groundSize.depth / 40))
+  );
+
   texture.anisotropy = app.renderer.capabilities.getMaxAnisotropy();
 
   return texture;
@@ -233,11 +264,11 @@ export function createGroundTexture() {
 export function createGround() {
   const texture = createGroundTexture();
   const theme = getCurrentTheme();
-  const { width, depth } = getDynamicGroundSize();
+  const groundSize = getDynamicGroundSize();
 
   const geo = new THREE.PlaneGeometry(
-    width,
-    depth,
+    groundSize.width,
+    groundSize.depth,
     CONFIG.ground.segmentsX,
     CONFIG.ground.segmentsZ
   );
@@ -250,8 +281,7 @@ export function createGround() {
 
   const ground = new THREE.Mesh(geo, mat);
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = CONFIG.ground.y;
-  ground.position.z = depth / 2 - 220;
+  ground.position.set(0, CONFIG.ground.y, groundSize.depth / 2 - 100);
 
   app.scene.add(ground);
   app.ground = ground;
@@ -266,7 +296,7 @@ export function rebuildGround() {
   createGround();
 }
 
-export function createStars() {
+function createStars() {
   const starConfig = CONFIG.background.stars;
   const positions = new Float32Array(starConfig.count * 3);
 
@@ -296,7 +326,7 @@ export function createStars() {
   return new THREE.Points(geo, mat);
 }
 
-export function createNebulaBands() {
+function createNebulaBands() {
   const nebulaConfig = CONFIG.background.nebula;
   const group = new THREE.Group();
 
@@ -320,9 +350,11 @@ export function createNebulaBands() {
       i * nebulaConfig.spacingZ
     );
     mesh.rotation.x =
-      nebulaConfig.rotationXBase - pseudoRandom(i + 201) * nebulaConfig.rotationXRange;
-    mesh.rotation.y = (pseudoRandom(i + 301) - 0.5) * nebulaConfig.rotationYRange;
-    mesh.rotation.z = (pseudoRandom(i + 401) - 0.5) * nebulaConfig.rotationZRange;
+      nebulaConfig.rotationXBase - pseudoRandom(i + 103) * nebulaConfig.rotationXRange;
+    mesh.rotation.y =
+      (pseudoRandom(i + 104) - 0.5) * nebulaConfig.rotationYRange;
+    mesh.rotation.z =
+      (pseudoRandom(i + 105) - 0.5) * nebulaConfig.rotationZRange;
 
     group.add(mesh);
   }
@@ -333,44 +365,39 @@ export function createNebulaBands() {
 function createAmusementSkyline() {
   const group = new THREE.Group();
 
-  const skyGeo = new THREE.PlaneGeometry(3000, 1400);
-  const skyMat = new THREE.MeshBasicMaterial({
-    color: 0xbfe7ff,
-    depthWrite: false
-  });
-  const sky = new THREE.Mesh(skyGeo, skyMat);
-  sky.position.set(0, 500, 2600);
-  group.add(sky);
+  for (let i = 0; i < 20; i++) {
+    const poleGroup = new THREE.Group();
 
-  for (let i = 0; i < 16; i++) {
-    const tentGeo = new THREE.ConeGeometry(45, 70, 4);
-    const tentMat = new THREE.MeshLambertMaterial({
-      color: i % 2 === 0 ? 0xff6699 : 0xffcc33
+    const poleGeo = new THREE.CylinderGeometry(1.8, 1.8, 44, 8);
+    const poleMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+    const pole = new THREE.Mesh(poleGeo, poleMat);
+    pole.position.y = 22;
+    poleGroup.add(pole);
+
+    const bulbGeo = new THREE.SphereGeometry(5, 12, 12);
+    const bulbMat = new THREE.MeshBasicMaterial({
+      color: i % 3 === 0 ? 0xff0000 : (i % 3 === 1 ? 0x0000ff : 0xffff00)
     });
-    const tent = new THREE.Mesh(tentGeo, tentMat);
-    tent.position.set(-700 + i * 95, 35, 700 + (i % 3) * 180);
-    tent.rotation.y = Math.PI * 0.25;
-    group.add(tent);
+    const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+    bulb.position.y = 47;
+    poleGroup.add(bulb);
+
+    const side = i % 2 === 0 ? -1 : 1;
+    const lane = Math.floor(i / 2);
+    poleGroup.position.set(side * 85, 0, lane * 180 + 100);
+
+    group.add(poleGroup);
   }
 
   const wheelGroup = new THREE.Group();
 
-  const ringGeo = new THREE.TorusGeometry(120, 10, 16, 48);
-  const ringMat = new THREE.MeshLambertMaterial({ color: 0xff66aa });
+  const ringGeo = new THREE.TorusGeometry(120, 8, 16, 48);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
   const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.y = Math.PI / 2;
   wheelGroup.add(ring);
 
-  for (let i = 0; i < 8; i++) {
-    const angle = (i / 8) * Math.PI * 2;
-    const spokeGeo = new THREE.CylinderGeometry(2, 2, 220, 8);
-    const spokeMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-    const spoke = new THREE.Mesh(spokeGeo, spokeMat);
-    spoke.rotation.z = Math.PI / 2;
-    spoke.rotation.y = angle;
-    wheelGroup.add(spoke);
-  }
-
-  const standGeo = new THREE.BoxGeometry(16, 180, 16);
+  const standGeo = new THREE.CylinderGeometry(7, 10, 180, 8);
   const standMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
   const stand = new THREE.Mesh(standGeo, standMat);
   stand.position.y = -130;
@@ -403,7 +430,7 @@ function createAnalysisBackdrop() {
   return group;
 }
 
-export function clearBackground() {
+function clearBackground() {
   if (app.backgroundGroup) {
     disposeObject3D(app.backgroundGroup);
     app.scene.remove(app.backgroundGroup);
@@ -456,11 +483,10 @@ function createHeightGuides() {
 
   const guideGroup = new THREE.Group();
   const theme = getCurrentTheme();
+  const { maxY } = getGroundMetrics();
 
-  const maxY = Math.max(...app.coursePoints.map(p => p.y), 0);
   const guideStep = Math.max(20, Math.ceil(maxY / 6 / 10) * 10);
-
-  const width = 180;
+  const width = Math.max(180, getDynamicGroundSize().width * 0.45);
   const depth = app.coursePoints.length > 0
     ? app.coursePoints[app.coursePoints.length - 1].z + 200
     : 3000;
@@ -472,10 +498,32 @@ function createHeightGuides() {
     ];
 
     const geo = new THREE.BufferGeometry().setFromPoints(points);
+    const mat = new THREE.LineDashedMaterial({
+      color: theme.guideColor,
+      transparent: true,
+      opacity: theme.guideOpacity,
+      dashSize: 16,
+      gapSize: 10
+    });
+
+    const line = new THREE.Line(geo, mat);
+    line.computeLineDistances();
+    guideGroup.add(line);
+  }
+
+  const sampleStep = Math.max(1, Math.floor(app.coursePoints.length / 70));
+  for (let i = 0; i < app.coursePoints.length; i += sampleStep) {
+    const p = app.coursePoints[i];
+
+    const geo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(p.x, CONFIG.ground.y, p.z),
+      new THREE.Vector3(p.x, p.y, p.z)
+    ]);
+
     const mat = new THREE.LineBasicMaterial({
       color: theme.guideColor,
       transparent: true,
-      opacity: theme.guideOpacity
+      opacity: theme.guideOpacity + 0.10
     });
 
     const line = new THREE.Line(geo, mat);
@@ -486,23 +534,36 @@ function createHeightGuides() {
   app.guideGroup = guideGroup;
 }
 
+export function sampleCurvePoint(curve, t) {
+  if (!curve) return new THREE.Vector3();
+  return curve.getPoint(Math.min(Math.max(t, 0), 1));
+}
+
 export function updateCameraPosition(curve, t, lookAhead) {
-  const clampedT = Math.min(Math.max(t, 0), 1);
-  const lookT = Math.min(clampedT + lookAhead, 1);
+  const pos = sampleCurvePoint(curve, t);
+  const look = sampleCurvePoint(curve, Math.min(t + lookAhead, 1));
 
-  const pos = curve.getPointAt(clampedT);
-  const look = curve.getPointAt(lookT);
+  const target = app.cameraRig || app.camera;
 
-  app.camera.position.set(
+  target.position.set(
     pos.x,
     pos.y + CONFIG.camera.rideHeight,
     pos.z
   );
-  app.camera.lookAt(
-    look.x,
-    look.y + CONFIG.camera.lookAtYOffset,
-    look.z + CONFIG.camera.lookAtZOffset
-  );
+
+  const dx = look.x - pos.x;
+  const dz = look.z - pos.z;
+
+  if (app.xr.isPresenting && app.cameraRig) {
+    const yaw = Math.atan2(dx, dz) + Math.PI;
+    app.cameraRig.rotation.set(0, yaw, 0);
+  } else {
+    app.camera.lookAt(
+      look.x,
+      look.y + CONFIG.camera.lookAtYOffset,
+      look.z + CONFIG.camera.lookAtZOffset
+    );
+  }
 }
 
 export function rebuildSceneTheme() {

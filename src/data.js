@@ -1,5 +1,4 @@
 import * as THREE from 'https://unpkg.com/three@0.183.0/build/three.module.js';
-import { ui } from './ui.js';
 import { parseDateLocal, getPosYByPrice } from './utils.js';
 
 export function parseCSV(text) {
@@ -82,10 +81,15 @@ export function buildCoursePoints(rows, buildSettings) {
   return { points, prices, baseClose, minClose, maxClose };
 }
 
-export async function readSelectedFileText() {
-  const file = ui.fileInput.files[0];
-  if (!file) {
-    throw new Error('CSVファイルを選んでください。');
+export async function readCsvTextFromUrl(url) {
+  if (!url) {
+    throw new Error('CSVファイルのURLが指定されていません。');
   }
-  return await file.text();
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`CSVの取得に失敗しました: ${response.status} ${response.statusText}`);
+  }
+
+  return await response.text();
 }
