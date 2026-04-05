@@ -1,9 +1,8 @@
 html, body {
   margin: 0;
-  padding: 0;
   overflow: hidden;
-  background: #111;
   font-family: sans-serif;
+  background: #000;
 }
 
 canvas {
@@ -15,30 +14,71 @@ canvas {
   left: 12px;
   top: 12px;
   z-index: 10;
+  width: 420px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.65);
   color: white;
-  background: rgba(0, 0, 0, 0.58);
   padding: 12px;
-  border-radius: 10px;
-  width: 340px;
-  line-height: 1.5;
-  font-size: 14px;
-  backdrop-filter: blur(4px);
+  border-radius: 12px;
+  backdrop-filter: blur(6px);
+  box-sizing: border-box;
 }
 
-#ui input,
-#ui select,
+.panelTitle {
+  margin-bottom: 10px;
+}
+
+.fieldRow,
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.fieldRow label,
+.checkboxRow span {
+  flex: 0 0 110px;
+  font-size: 13px;
+  opacity: 0.92;
+}
+
+.fieldRow label {
+  display: block;
+}
+
+.fieldRow input,
+.fieldRow select {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: none;
+}
+
+.checkboxRow {
+  justify-content: space-between;
+}
+
+.checkboxRow input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
 #ui button {
   width: 100%;
   box-sizing: border-box;
-  margin-top: 6px;
+  margin-top: 8px;
   margin-bottom: 10px;
   padding: 8px;
   font-size: 14px;
   border-radius: 6px;
   border: none;
-}
-
-#ui button {
   cursor: pointer;
   background: linear-gradient(90deg, #4666ff, #9b5cff);
   color: white;
@@ -60,7 +100,8 @@ canvas {
 }
 
 #status {
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.45;
   opacity: 0.96;
   white-space: pre-wrap;
 }

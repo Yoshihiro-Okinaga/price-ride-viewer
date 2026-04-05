@@ -17,6 +17,53 @@ import {
   getDynamicGroundSize
 } from './scene.js';
 
+function getThemeLabel(theme) {
+  switch (theme) {
+    case 'amusement':
+      return '明るい遊園地';
+    case 'analysis':
+      return '解析モード';
+    case 'cityNight':
+      return '都会の夜景';
+    default:
+      return '宇宙';
+  }
+}
+
+function getPointMaxY(points) {
+  let maxY = 0;
+
+  for (const point of points) {
+    if (point.y > maxY) {
+      maxY = point.y;
+    }
+  }
+
+  return maxY;
+}
+
+function addPriceLabel(price, point, buildSettings, labelY) {
+  const priceY = getPosYByPrice(
+    price,
+    app.maxClose,
+    app.minClose,
+    buildSettings.heightScale,
+    buildSettings.invertPrice
+  );
+
+  const label = createTextSprite(
+    price.toFixed(CONFIG.course.monthlyLabel.priceDecimals)
+  );
+
+  label.position.set(
+    CONFIG.label.position.x,
+    priceY + labelY,
+    point.z
+  );
+
+  app.courseGroup.add(label);
+}
+
 export function resetCourseGroup() {
   if (app.courseGroup) {
     disposeObject3D(app.courseGroup);
@@ -63,21 +110,29 @@ export function createRoundedRect(ctx, x, y, w, h, r) {
 
 export function createTextSprite(text) {
   const spriteConfig = CONFIG.label.sprite;
+  const inset = CONFIG.course.spriteFrameInset;
 
   const canvas = document.createElement('canvas');
   canvas.width = spriteConfig.canvasWidth;
   canvas.height = spriteConfig.canvasHeight;
   const ctx = canvas.getContext('2d');
 
+  if (!ctx) {
+    throw new Error('2Dコンテキストの取得に失敗しました。');
+  }
+
+  const frameWidth = canvas.width - inset * 2;
+  const frameHeight = canvas.height - inset * 2;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   ctx.fillStyle = spriteConfig.backgroundColor;
   createRoundedRect(
     ctx,
-    4,
-    4,
-    canvas.width - 8,
-    canvas.height - 8,
+    inset,
+    inset,
+    frameWidth,
+    frameHeight,
     spriteConfig.borderRadius
   );
   ctx.fill();
@@ -86,10 +141,10 @@ export function createTextSprite(text) {
   ctx.lineWidth = spriteConfig.borderWidth;
   createRoundedRect(
     ctx,
-    4,
-    4,
-    canvas.width - 8,
-    canvas.height - 8,
+    inset,
+    inset,
+    frameWidth,
+    frameHeight,
     spriteConfig.borderRadius
   );
   ctx.stroke();
@@ -117,57 +172,42 @@ export function createTextSprite(text) {
 export function addMonthlyLabels(points, prices, rows, buildSettings) {
   if (!points.length || !rows.length) return;
 
+  const monthlyLabelConfig = CONFIG.course.monthlyLabel;
   let lastMonthKey = '';
 
   for (let i = 0; i < rows.length; i++) {
-    const d = rows[i].date;
-    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const row = rows[i];
+    const point = points[i];
+
+    if (!point) continue;
+
+    const date = row.date;
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
     if (monthKey === lastMonthKey) continue;
     lastMonthKey = monthKey;
 
-    const p = points[i];
-    if (!p) continue;
-
-    const label = createTextSprite(monthKey);
-    label.position.set(
+    const monthLabel = createTextSprite(monthKey);
+    monthLabel.position.set(
       CONFIG.label.position.x,
-      p.y + CONFIG.label.position.yOffset,
-      p.z
+      point.y + CONFIG.label.position.yOffset,
+      point.z
     );
-    app.courseGroup.add(label);
+    app.courseGroup.add(monthLabel);
 
-    const price2 = prices[i] * 1.02;
-    const price2Y = getPosYByPrice(
-      price2,
-      app.maxClose,
-      app.minClose,
-      buildSettings.heightScale,
-      buildSettings.invertPrice
+    addPriceLabel(
+      prices[i] * monthlyLabelConfig.upperPriceRatio,
+      point,
+      buildSettings,
+      CONFIG.label.position.yOffset
     );
-    const label2 = createTextSprite(price2.toFixed(4));
-    label2.position.set(
-      CONFIG.label.position.x,
-      price2Y + CONFIG.label.position.yOffset,
-      p.z
-    );
-    app.courseGroup.add(label2);
 
-    const price3 = prices[i] * 0.98;
-    const price3Y = getPosYByPrice(
-      price3,
-      app.maxClose,
-      app.minClose,
-      buildSettings.heightScale,
-      buildSettings.invertPrice
+    addPriceLabel(
+      prices[i] * monthlyLabelConfig.lowerPriceRatio,
+      point,
+      buildSettings,
+      CONFIG.label.position.yOffset
     );
-    const label3 = createTextSprite(price3.toFixed(4));
-    label3.position.set(
-      CONFIG.label.position.x,
-      price3Y + CONFIG.label.position.yOffset,
-      p.z
-    );
-    app.courseGroup.add(label3);
   }
 }
 
@@ -185,16 +225,16 @@ export function addRails(curve) {
   const leftPoints = [];
   const rightPoints = [];
 
-  for (const p of centerPoints) {
+  for (const point of centerPoints) {
     leftPoints.push(new THREE.Vector3(
-      p.x - railConfig.halfWidth,
-      p.y + railConfig.offsetY,
-      p.z
+      point.x - railConfig.halfWidth,
+      point.y + railConfig.offsetY,
+      point.z
     ));
     rightPoints.push(new THREE.Vector3(
-      p.x + railConfig.halfWidth,
-      p.y + railConfig.offsetY,
-      p.z
+      point.x + railConfig.halfWidth,
+      point.y + railConfig.offsetY,
+      point.z
     ));
   }
 
@@ -288,14 +328,14 @@ export function addRails(curve) {
   for (let i = 0; i <= sleeperCount; i++) {
     const u = sleeperCount === 0 ? 0 : i / sleeperCount;
 
-    const p = curve.getPointAt(u);
+    const point = curve.getPointAt(u);
     const tangent = curve.getTangentAt(u).normalize();
 
     const sleeper = new THREE.Mesh(sleeperGeo, sleeperMat);
     sleeper.position.set(
-      p.x,
-      p.y + railConfig.offsetY + sleeperConfig.offsetY,
-      p.z
+      point.x,
+      point.y + railConfig.offsetY + sleeperConfig.offsetY,
+      point.z
     );
 
     const up = new THREE.Vector3(0, 1, 0);
@@ -325,21 +365,24 @@ function clamp(value, min, max) {
 }
 
 function roundNice(value) {
-  if (!Number.isFinite(value) || value <= 0) return 1;
+  const candidates = CONFIG.course.autoBuild.roundNiceCandidates;
+
+  if (!Number.isFinite(value) || value <= 0) {
+    return candidates[0];
+  }
 
   const exp = Math.floor(Math.log10(value));
   const scale = 10 ** exp;
   const normalized = value / scale;
-  const candidates = [1, 2, 5, 10];
 
   let best = candidates[0];
   let minDiff = Math.abs(normalized - best);
 
-  for (const c of candidates) {
-    const diff = Math.abs(normalized - c);
+  for (const candidate of candidates) {
+    const diff = Math.abs(normalized - candidate);
     if (diff < minDiff) {
       minDiff = diff;
-      best = c;
+      best = candidate;
     }
   }
 
@@ -351,18 +394,31 @@ export function calcAutoBuildParams(rows) {
     throw new Error('自動調整するための有効データが不足しています。');
   }
 
+  const autoBuildConfig = CONFIG.course.autoBuild;
+
   const closes = rows.map(row => row.close);
   const minClose = Math.min(...closes);
   const maxClose = Math.max(...closes);
-  const range = Math.max(maxClose - minClose, 1e-9);
+  const range = Math.max(
+    maxClose - minClose,
+    autoBuildConfig.rangeEpsilon
+  );
   const count = rows.length;
 
-  let heightScale = 260 / range;
+  let heightScale = autoBuildConfig.targetHeightRange / range;
   heightScale = roundNice(heightScale);
-  heightScale = clamp(heightScale, 0.0001, 1000000000);
+  heightScale = clamp(
+    heightScale,
+    autoBuildConfig.minHeightScale,
+    autoBuildConfig.maxHeightScale
+  );
 
-  let zStep = 5000 / Math.max(count - 1, 1);
-  zStep = clamp(zStep, 8, 160);
+  let zStep = autoBuildConfig.targetDepth / Math.max(count - 1, 1);
+  zStep = clamp(
+    zStep,
+    autoBuildConfig.minZStep,
+    autoBuildConfig.maxZStep
+  );
   zStep = Math.round(zStep);
 
   return {
@@ -426,11 +482,6 @@ export async function buildCourseFromUI() {
   addMonthlyLabels(points, prices, filteredRows, buildSettings);
   updateCameraPosition(app.curve, 0, app.runtimeSettings.lookAhead);
 
-  let maxY = 0;
-  for (const p of points) {
-    if (p.y > maxY) maxY = p.y;
-  }
-
   rebuildGround();
   createBackground();
   refreshGuidesAfterCourseBuild();
@@ -438,6 +489,7 @@ export async function buildCourseFromUI() {
   const groundSize = getDynamicGroundSize();
   const firstDate = toDateTextLocal(filteredRows[0].date);
   const lastDate = toDateTextLocal(filteredRows[filteredRows.length - 1].date);
+  const maxY = getPointMaxY(points);
 
   app.lastBuildInfo = {
     rowCount: filteredRows.length,
@@ -453,14 +505,7 @@ export async function buildCourseFromUI() {
     groundDepth: groundSize.depth,
     autoScale: buildSettings.autoScale,
     invertPrice: buildSettings.invertPrice,
-    themeLabel:
-      buildSettings.theme === 'amusement'
-        ? '明るい遊園地'
-        : buildSettings.theme === 'analysis'
-          ? '解析モード'
-          : buildSettings.theme === 'cityNight'
-          ? '都会の夜景'
-          : '宇宙',
+    themeLabel: getThemeLabel(buildSettings.theme),
     showHeightGuides: buildSettings.showHeightGuides
   };
 

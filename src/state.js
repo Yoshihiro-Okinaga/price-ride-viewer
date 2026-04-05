@@ -16,35 +16,36 @@ export const app = {
   ground: null,
   backgroundGroup: null,
   guideGroup: null,
+
   courseGroup: null,
+  coursePoints: [],
+  prices: [],
+  curve: null,
+  rideT: 0,
+
+  minClose: 0,
+  maxClose: 0,
+  lastBuildInfo: null,
+
+  buildSettings: {
+    startDateText: CONFIG.ui.initialValues.startDate,
+    heightScale: CONFIG.ui.initialValues.heightScale,
+    zStep: CONFIG.ui.initialValues.zStep,
+    autoScale: CONFIG.ui.initialValues.autoScale,
+    invertPrice: CONFIG.ui.initialValues.invertPrice,
+    theme: CONFIG.ui.initialValues.theme,
+    showHeightGuides: CONFIG.ui.initialValues.showHeightGuides,
+    csvUrl: ''
+  },
+
+  runtimeSettings: {
+    rideSpeed: CONFIG.ui.initialValues.rideSpeed,
+    lookAhead: CONFIG.ui.initialValues.lookAhead
+  },
 
   lights: {
     directional: null,
     ambient: null,
     point: null
-  },
-
-  coursePoints: [],
-  prices: [],
-  curve: null,
-  minClose: 0,
-  maxClose: 0,
-  rideT: 0,
-
-  buildSettings: {
-    startDateText: '2026-01-01',
-    heightScale: 1000,
-    zStep: 80,
-    autoScale: true,
-    invertPrice: false,
-    theme: 'space',
-    showHeightGuides: true
-  },
-
-  runtimeSettings: {
-    rideSpeed: 0.03,
-    lookAhead: CONFIG.defaults.lookAhead
-  },
-
-  lastBuildInfo: null
+  }
 };

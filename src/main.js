@@ -6,7 +6,8 @@ import {
   setUiVisible,
   toggleUiVisible,
   applyRuntimeSettingsFromUI,
-  syncStateFromUI
+  syncStateFromUI,
+  applyUiConfigToDom
 } from './ui.js';
 import {
   createSceneObjects,
@@ -21,31 +22,39 @@ import {
   previewAutoBuildParamsFromCurrentInput
 } from './course.js';
 
+function getUiText() {
+  return CONFIG.ui.displayText;
+}
+
+function buildErrorMessage(error) {
+  const text = getUiText();
+  return text.errorPrefix + (error instanceof Error ? error.message : String(error));
+}
+
 function updateRide() {
   if (!app.curve) {
     app.clock.getDelta();
     return;
   }
 
-  const runtime = app.runtimeSettings;
-  if (!runtime) {
+  if (!app.runtimeSettings) {
     app.clock.getDelta();
     return;
   }
 
-  if (runtime.rideSpeed <= 0) {
+  if (app.runtimeSettings.rideSpeed <= 0) {
     app.clock.getDelta();
     return;
   }
 
   const dt = app.clock.getDelta();
-  app.rideT += dt * runtime.rideSpeed;
+  app.rideT += dt * app.runtimeSettings.rideSpeed;
 
   if (app.rideT > 1) {
     app.rideT = 1;
   }
 
-  updateCameraPosition(app.curve, app.rideT, runtime.lookAhead);
+  updateCameraPosition(app.curve, app.rideT, app.runtimeSettings.lookAhead);
 }
 
 function render() {
@@ -72,8 +81,8 @@ async function refreshAutoScalePreviewIfNeeded() {
 
   try {
     await previewAutoBuildParamsFromCurrentInput();
-  } catch (err) {
-    setStatus('エラー: ' + (err instanceof Error ? err.message : String(err)));
+  } catch (error) {
+    setStatus(buildErrorMessage(error));
   }
 }
 
@@ -81,8 +90,8 @@ function setupEvents() {
   ui.buildButton.addEventListener('click', async () => {
     try {
       await buildCourseFromUI();
-    } catch (err) {
-      setStatus('エラー: ' + (err instanceof Error ? err.message : String(err)));
+    } catch (error) {
+      setStatus(buildErrorMessage(error));
     }
   });
 
@@ -134,8 +143,11 @@ function setupEvents() {
     toggleUiVisible();
   });
 
-  window.addEventListener('keydown', (e) => {
-    if (e.key === CONFIG.ui.toggleKey || e.key === CONFIG.ui.toggleKey.toUpperCase()) {
+  window.addEventListener('keydown', (event) => {
+    if (
+      event.key === CONFIG.ui.toggleKey ||
+      event.key === CONFIG.ui.toggleKey.toUpperCase()
+    ) {
       toggleUiVisible();
     }
   });
@@ -151,6 +163,8 @@ function setupEvents() {
 }
 
 function init() {
+  applyUiConfigToDom();
+
   try {
     syncStateFromUI();
   } catch {

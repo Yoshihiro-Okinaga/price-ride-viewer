@@ -4,106 +4,17 @@ import { CONFIG } from './config.js';
 import { app } from './state.js';
 import { disposeObject3D, pseudoRandom } from './utils.js';
 
-const THEMES = {
-  space: {
-    sceneBackground: 0x020612,
-    fogColor: 0x061020,
-    fogDensity: 0.00026,
-    ground: {
-      opacity: 0.96,
-      backgroundColor: '#040815',
-      gradTop: 'rgba(80,150,255,0.18)',
-      gradMid: 'rgba(0,0,0,0.00)',
-      gradBottom: 'rgba(255,80,210,0.16)',
-      gridColor: 'rgba(255,255,255,0.95)',
-      glowDotColor: 'rgba(220,240,255,0.30)',
-      cells: 16
-    },
-    lighting: {
-      directional: { color: 0xf2f6ff, intensity: 1.12 },
-      ambient: { color: 0xb9c7ff, intensity: 1.04 },
-      point: { color: 0x8ae0ff, intensity: 1.45 }
-    },
-    backgroundKind: 'space',
-    guideColor: 0xb7deff,
-    guideOpacity: 0.36
-  },
-
-  amusement: {
-    sceneBackground: 0x00ff00,
-    fogColor: 0x88ff88,
-    fogDensity: 0.00001,
-    ground: {
-      opacity: 1.0,
-      backgroundColor: '#ccff66',
-      gradTop: 'rgba(255,255,255,0.00)',
-      gradMid: 'rgba(255,255,255,0.00)',
-      gradBottom: 'rgba(255,255,255,0.00)',
-      gridColor: 'rgba(255,0,0,0.55)',
-      glowDotColor: 'rgba(255,255,0,0.20)',
-      cells: 8
-    },
-    lighting: {
-      directional: { color: 0xffffff, intensity: 1.5 },
-      ambient: { color: 0xffffff, intensity: 1.2 },
-      point: { color: 0xffaa00, intensity: 1.2 }
-    },
-    backgroundKind: 'amusement',
-    guideColor: 0xff0000,
-    guideOpacity: 0.35
-  },
-
-  analysis: {
-    sceneBackground: 0xffffff,
-    fogColor: 0xffffff,
-    fogDensity: 0.00001,
-    ground: {
-      opacity: 1.0,
-      backgroundColor: '#eeeeee',
-      gradTop: 'rgba(0,0,0,0.00)',
-      gradMid: 'rgba(0,0,0,0.00)',
-      gradBottom: 'rgba(0,0,0,0.00)',
-      gridColor: 'rgba(0,0,255,0.35)',
-      glowDotColor: 'rgba(0,0,0,0.00)',
-      cells: 18
-    },
-    lighting: {
-      directional: { color: 0xffffff, intensity: 1.0 },
-      ambient: { color: 0xffffff, intensity: 1.2 },
-      point: { color: 0xffffff, intensity: 0.0 }
-    },
-    backgroundKind: 'analysis',
-    guideColor: 0x0000ff,
-    guideOpacity: 0.25
-  },
-
-  cityNight: {
-    sceneBackground: 0x05070d,
-    fogColor: 0x0b1020,
-    fogDensity: 0.00018,
-    ground: {
-      opacity: 0.98,
-      backgroundColor: '#0b0f18',
-      gradTop: 'rgba(120,160,255,0.10)',
-      gradMid: 'rgba(0,0,0,0.00)',
-      gradBottom: 'rgba(255,120,180,0.06)',
-      gridColor: 'rgba(180,210,255,0.18)',
-      glowDotColor: 'rgba(255,220,120,0.05)',
-      cells: 14
-    },
-    lighting: {
-      directional: { color: 0xeaf0ff, intensity: 0.95 },
-      ambient: { color: 0x98a8d8, intensity: 0.78 },
-      point: { color: 0xffd080, intensity: 0.65 }
-    },
-    backgroundKind: 'cityNight',
-    guideColor: 0x8fc4ff,
-    guideOpacity: 0.28
-  }
-};
-
 function getCurrentTheme() {
-  return THEMES[app.buildSettings.theme] || THEMES.space;
+  return CONFIG.sceneRefactor.themePresets[app.buildSettings.theme]
+    || CONFIG.sceneRefactor.themePresets.space;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getArrayColor(colors, index, fallback) {
+  return colors[index % colors.length] ?? fallback;
 }
 
 export function createSceneObjects() {
@@ -190,10 +101,12 @@ function getGroundTextureConfig() {
 
 function getGroundMetrics() {
   const points = app.coursePoints || [];
+  const metricsConfig = CONFIG.sceneRefactor.metrics;
+
   if (points.length === 0) {
     return {
-      maxY: 120,
-      lastZ: 3000
+      maxY: metricsConfig.noCourseMaxY,
+      lastZ: metricsConfig.noCourseLastZ
     };
   }
 
@@ -210,13 +123,20 @@ function getGroundMetrics() {
 
 export function getDynamicGroundSize() {
   const { maxY, lastZ } = getGroundMetrics();
+  const groundSizingConfig = CONFIG.sceneRefactor.groundSizing;
 
-  const baseWidth = 320;
-  const widthByHeight = maxY * 1.8;
-  const width = Math.max(baseWidth, Math.ceil((baseWidth + widthByHeight) / 20) * 20);
+  const widthByHeight = maxY * groundSizingConfig.widthByHeightMultiplier;
+  const width = Math.max(
+    groundSizingConfig.baseWidth,
+    Math.ceil((groundSizingConfig.baseWidth + widthByHeight) / groundSizingConfig.widthRoundUnit) *
+      groundSizingConfig.widthRoundUnit
+  );
 
-  const baseDepth = 3000;
-  const depth = Math.max(baseDepth, Math.ceil((lastZ + 1000) / 100) * 100);
+  const depth = Math.max(
+    groundSizingConfig.baseDepth,
+    Math.ceil((lastZ + groundSizingConfig.depthPadding) / groundSizingConfig.depthRoundUnit) *
+      groundSizingConfig.depthRoundUnit
+  );
 
   return { width, depth };
 }
@@ -224,29 +144,39 @@ export function getDynamicGroundSize() {
 function getBackgroundMetrics() {
   const { maxY, lastZ } = getGroundMetrics();
   const groundSize = getDynamicGroundSize();
+  const metricsConfig = CONFIG.sceneRefactor.metrics;
 
-  const heightFactor = Math.max(1, Math.min(4, maxY / 140));
+  const heightFactor = clamp(
+    maxY / metricsConfig.heightFactorDivisor,
+    metricsConfig.heightFactorMin,
+    metricsConfig.heightFactorMax
+  );
 
   return {
     maxY,
     lastZ,
     width: groundSize.width,
     depth: groundSize.depth,
-    sceneCenterZ: groundSize.depth / 2 - 100,
-    frontPad: 300,
-    backPad: 800,
+    sceneCenterZ: groundSize.depth / 2 - metricsConfig.sceneCenterZOffset,
+    frontPad: metricsConfig.frontPad,
+    backPad: metricsConfig.backPad,
     heightFactor
   };
 }
 
 function createGroundTexture() {
   const textureConfig = getGroundTextureConfig();
+  const repeatConfig = CONFIG.sceneRefactor.groundTextureRepeat;
   const size = textureConfig.size;
 
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d');
+
+  if (!ctx) {
+    throw new Error('地面テクスチャ用の2Dコンテキスト取得に失敗しました。');
+  }
 
   ctx.fillStyle = textureConfig.backgroundColor;
   ctx.fillRect(0, 0, size, size);
@@ -294,8 +224,14 @@ function createGroundTexture() {
 
   const groundSize = getDynamicGroundSize();
   texture.repeat.set(
-    Math.max(8, Math.round(groundSize.width / 40)),
-    Math.max(20, Math.round(groundSize.depth / 40))
+    Math.max(
+      repeatConfig.minRepeatX,
+      Math.round(groundSize.width / repeatConfig.repeatDivisor)
+    ),
+    Math.max(
+      repeatConfig.minRepeatZ,
+      Math.round(groundSize.depth / repeatConfig.repeatDivisor)
+    )
   );
 
   texture.anisotropy = app.renderer.capabilities.getMaxAnisotropy();
@@ -340,29 +276,43 @@ export function rebuildGround() {
 
 function createStars() {
   const starConfig = CONFIG.background.stars;
+  const refactor = CONFIG.sceneRefactor.stars;
   const metrics = getBackgroundMetrics();
+
   const count = Math.max(
     starConfig.count,
-    Math.ceil(metrics.depth / 2.6) + Math.ceil(metrics.width * 2.8)
+    Math.ceil(metrics.depth / refactor.depthDivisor) +
+      Math.ceil(metrics.width * refactor.widthMultiplier)
   );
 
   const positions = new Float32Array(count * 3);
 
   for (let i = 0; i < count; i++) {
-    positions[i * 3 + 0] = (Math.random() - 0.5) * Math.max(starConfig.rangeX, metrics.width * 9);
-    positions[i * 3 + 1] = starConfig.minY + Math.random() * Math.max(starConfig.rangeY, metrics.maxY * 3.2 + 1200);
-    positions[i * 3 + 2] = -metrics.frontPad + Math.random() * (metrics.depth + metrics.backPad);
+    positions[i * 3 + 0] =
+      (Math.random() - 0.5) *
+      Math.max(starConfig.rangeX, metrics.width * refactor.rangeXWidthMultiplier);
+
+    positions[i * 3 + 1] =
+      starConfig.minY +
+      Math.random() *
+        Math.max(
+          starConfig.rangeY,
+          metrics.maxY * refactor.rangeYHeightMultiplier + refactor.rangeYBasePadding
+        );
+
+    positions[i * 3 + 2] =
+      -metrics.frontPad + Math.random() * (metrics.depth + metrics.backPad);
   }
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
   const mat = new THREE.PointsMaterial({
-    color: 0xf6fbff,
-    size: starConfig.size * 1.25,
+    color: refactor.color,
+    size: starConfig.size * refactor.sizeMultiplier,
     sizeAttenuation: true,
     transparent: true,
-    opacity: 1.0,
+    opacity: refactor.opacity,
     depthTest: true,
     depthWrite: false
   });
@@ -372,26 +322,32 @@ function createStars() {
 
 function createNebulaBands() {
   const metrics = getBackgroundMetrics();
+  const refactor = CONFIG.sceneRefactor.nebulaBands;
   const group = new THREE.Group();
 
-  const startZ = -150;
-  const endZ = metrics.depth + 500;
-  const spacing = 360;
-  const count = Math.max(18, Math.ceil((endZ - startZ) / spacing));
-  const nebulaColors = [0x42e8ff, 0xff4fd8, 0x7a6bff, 0xffffff, 0x7cf7ff];
+  const startZ = refactor.startZ;
+  const endZ = metrics.depth + refactor.endZPadding;
+  const spacing = refactor.spacing;
+  const count = Math.max(refactor.minCount, Math.ceil((endZ - startZ) / spacing));
 
   for (let i = 0; i < count; i++) {
-    const scale = 1 + pseudoRandom(i + 200) * 0.5 + metrics.heightFactor * 0.22;
+    const scale =
+      refactor.scaleBase +
+      pseudoRandom(i + 200) * refactor.scaleRandomMultiplier +
+      metrics.heightFactor * refactor.scaleHeightFactorMultiplier;
+
     const geo = new THREE.PlaneGeometry(
-      (900 + (i % 3) * 180) * scale,
-      (220 + (i % 2) * 80) * scale
+      (refactor.baseWidth + (i % refactor.widthVariants) * refactor.widthStep) * scale,
+      (refactor.baseHeight + (i % refactor.heightVariants) * refactor.heightStep) * scale
     );
 
-    const color = nebulaColors[i % nebulaColors.length];
+    const color = getArrayColor(refactor.colors, i, 0xffffff);
+
     const mat = new THREE.MeshBasicMaterial({
       color,
       transparent: true,
-      opacity: 0.16 + (i % 4) * 0.01,
+      opacity:
+        refactor.baseOpacity + (i % refactor.opacityVariants) * refactor.opacityStep,
       depthTest: true,
       depthWrite: false,
       side: THREE.DoubleSide
@@ -399,13 +355,17 @@ function createNebulaBands() {
 
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(
-      (pseudoRandom(i + 101) - 0.5) * Math.max(1500, metrics.width * 1.7),
-      180 + pseudoRandom(i + 102) * (metrics.maxY * 0.9 + 700),
+      (pseudoRandom(i + 101) - 0.5) *
+        Math.max(refactor.rangeXMin, metrics.width * refactor.rangeXWidthMultiplier),
+      refactor.baseY +
+        pseudoRandom(i + 102) *
+          (metrics.maxY * refactor.yHeightMultiplier + refactor.yBasePadding),
       startZ + i * spacing
     );
-    mesh.rotation.x = -0.15 - pseudoRandom(i + 103) * 0.35;
-    mesh.rotation.y = (pseudoRandom(i + 104) - 0.5) * 0.8;
-    mesh.rotation.z = (pseudoRandom(i + 105) - 0.5) * 0.6;
+    mesh.rotation.x =
+      refactor.rotationXBase - pseudoRandom(i + 103) * refactor.rotationXRandomMultiplier;
+    mesh.rotation.y = (pseudoRandom(i + 104) - 0.5) * refactor.rotationYRange;
+    mesh.rotation.z = (pseudoRandom(i + 105) - 0.5) * refactor.rotationZRange;
 
     group.add(mesh);
   }
@@ -415,25 +375,31 @@ function createNebulaBands() {
 
 function createSpaceOrbs() {
   const metrics = getBackgroundMetrics();
+  const refactor = CONFIG.sceneRefactor.spaceOrbs;
   const group = new THREE.Group();
-  const count = Math.max(18, Math.ceil(metrics.depth / 700));
-
-  const colors = [0x70e9ff, 0xff8ce8, 0xd9c2ff, 0xffffff];
+  const count = Math.max(refactor.minCount, Math.ceil(metrics.depth / refactor.countDepthDivisor));
 
   for (let i = 0; i < count; i++) {
-    const radius = 20 + pseudoRandom(i + 500) * 55 + metrics.heightFactor * 10;
+    const radius =
+      refactor.baseRadius +
+      pseudoRandom(i + 500) * refactor.radiusRandomMultiplier +
+      metrics.heightFactor * refactor.radiusHeightFactorMultiplier;
+
     const geo = new THREE.SphereGeometry(radius, 20, 20);
     const mat = new THREE.MeshBasicMaterial({
-      color: colors[i % colors.length],
+      color: getArrayColor(refactor.colors, i, 0xffffff),
       transparent: true,
-      opacity: 0.12 + pseudoRandom(i + 501) * 0.08
+      opacity: refactor.baseOpacity + pseudoRandom(i + 501) * refactor.opacityRandomMultiplier
     });
 
     const orb = new THREE.Mesh(geo, mat);
     orb.position.set(
-      (pseudoRandom(i + 502) - 0.5) * Math.max(420, metrics.width * 0.95),
-      80 + pseudoRandom(i + 503) * (metrics.maxY * 0.9 + 260),
-      150 + i * (metrics.depth / Math.max(1, count - 1))
+      (pseudoRandom(i + 502) - 0.5) *
+        Math.max(refactor.rangeXMin, metrics.width * refactor.rangeXWidthMultiplier),
+      refactor.baseY +
+        pseudoRandom(i + 503) *
+          (metrics.maxY * refactor.yHeightMultiplier + refactor.yBasePadding),
+      refactor.startZ + i * (metrics.depth / Math.max(1, count - 1))
     );
     orb.userData.floatSeed = i;
     orb.userData.kind = 'spaceOrb';
@@ -444,47 +410,72 @@ function createSpaceOrbs() {
 }
 
 function createRingPlanet(index, z, x, y, scale) {
+  const refactor = CONFIG.sceneRefactor.spacePlanets;
   const group = new THREE.Group();
 
-  const planetRadius = 55 * scale;
-  const planetGeo = new THREE.SphereGeometry(planetRadius, 28, 28);
+  const planetRadius = refactor.planetRadius * scale;
+  const planetGeo = new THREE.SphereGeometry(
+    planetRadius,
+    refactor.planetWidthSegments,
+    refactor.planetHeightSegments
+  );
   const planetMat = new THREE.MeshLambertMaterial({
     color: index % 2 === 0 ? 0x7cd8ff : 0xcba8ff,
     emissive: index % 2 === 0 ? 0x16334a : 0x2d1742,
-    emissiveIntensity: 0.35
+    emissiveIntensity: refactor.emissiveIntensity
   });
   const planet = new THREE.Mesh(planetGeo, planetMat);
   group.add(planet);
 
-  const ringGeo = new THREE.TorusGeometry(planetRadius * 1.65, planetRadius * 0.15, 12, 48);
+  const ringGeo = new THREE.TorusGeometry(
+    planetRadius * refactor.ringRadiusMultiplier,
+    planetRadius * refactor.ringTubeMultiplier,
+    refactor.ringTubeSegments,
+    refactor.ringRadialSegments
+  );
   const ringMat = new THREE.MeshBasicMaterial({
     color: 0xf8ffff,
     transparent: true,
-    opacity: 0.45
+    opacity: refactor.ringOpacity
   });
   const ring = new THREE.Mesh(ringGeo, ringMat);
-  ring.rotation.x = Math.PI * 0.35;
-  ring.rotation.y = Math.PI * 0.15;
+  ring.rotation.x = refactor.ringRotationX;
+  ring.rotation.y = refactor.ringRotationY;
   group.add(ring);
 
   group.position.set(x, y, z);
   group.userData.kind = 'spacePlanet';
-  group.userData.spinSpeed = 0.001 + index * 0.00008;
+  group.userData.spinSpeed = refactor.spinBase + index * refactor.spinStep;
 
   return group;
 }
 
 function createSpacePlanets() {
   const metrics = getBackgroundMetrics();
+  const refactor = CONFIG.sceneRefactor.spacePlanets;
   const group = new THREE.Group();
-  const count = Math.max(3, Math.ceil(metrics.depth / 3200));
+  const count = Math.max(refactor.minCount, Math.ceil(metrics.depth / refactor.countDepthDivisor));
 
   for (let i = 0; i < count; i++) {
     const side = i % 2 === 0 ? -1 : 1;
-    const x = side * Math.max(260, metrics.width * (0.33 + (i % 2) * 0.08));
-    const y = 180 + pseudoRandom(i + 620) * (metrics.maxY * 0.9 + 260);
-    const z = 900 + i * 3000;
-    const scale = 0.9 + pseudoRandom(i + 621) * 1.1 + metrics.heightFactor * 0.08;
+    const x =
+      side *
+      Math.max(
+        refactor.xMin,
+        metrics.width *
+          (refactor.xWidthMultiplierBase +
+            (i % 2) * refactor.xWidthMultiplierAlternating)
+      );
+    const y =
+      refactor.baseY +
+      pseudoRandom(i + 620) *
+        (metrics.maxY * refactor.yHeightMultiplier + refactor.yBasePadding);
+    const z = refactor.startZ + i * refactor.zSpacing;
+    const scale =
+      refactor.scaleBase +
+      pseudoRandom(i + 621) * refactor.scaleRandomMultiplier +
+      metrics.heightFactor * refactor.scaleHeightFactorMultiplier;
+
     group.add(createRingPlanet(i, z, x, y, scale));
   }
 
@@ -493,28 +484,39 @@ function createSpacePlanets() {
 
 function createCrystalCluster() {
   const metrics = getBackgroundMetrics();
+  const refactor = CONFIG.sceneRefactor.crystals;
   const group = new THREE.Group();
-  const laneSpacing = 520;
-  const count = Math.max(10, Math.ceil(metrics.depth / laneSpacing));
+  const count = Math.max(refactor.minCount, Math.ceil(metrics.depth / refactor.laneSpacing));
 
   for (let i = 0; i < count; i++) {
     const side = i % 2 === 0 ? -1 : 1;
-    const height = 50 + pseudoRandom(i + 710) * 180 + metrics.heightFactor * 30;
-    const radius = 10 + pseudoRandom(i + 711) * 16;
-    const geo = new THREE.ConeGeometry(radius, height, 6);
+    const height =
+      refactor.baseHeight +
+      pseudoRandom(i + 710) * refactor.heightRandomMultiplier +
+      metrics.heightFactor * refactor.heightFactorMultiplier;
+    const radius =
+      refactor.baseRadius + pseudoRandom(i + 711) * refactor.radiusRandomMultiplier;
+
+    const geo = new THREE.ConeGeometry(radius, height, refactor.radialSegments);
     const mat = new THREE.MeshLambertMaterial({
       color: i % 2 === 0 ? 0x8ef8ff : 0xf4a4ff,
       emissive: i % 2 === 0 ? 0x144f55 : 0x4a143e,
-      emissiveIntensity: 0.55,
+      emissiveIntensity: refactor.emissiveIntensity,
       transparent: true,
-      opacity: 0.82
+      opacity: refactor.opacity
     });
 
     const crystal = new THREE.Mesh(geo, mat);
     crystal.position.set(
-      side * Math.max(110, metrics.width * (0.20 + pseudoRandom(i + 712) * 0.10)),
-      height / 2 - 8,
-      120 + i * laneSpacing
+      side *
+        Math.max(
+          refactor.xMin,
+          metrics.width *
+            (refactor.xWidthMultiplierBase +
+              pseudoRandom(i + 712) * refactor.xWidthMultiplierRandom)
+        ),
+      height / 2 - refactor.baseYAdjustment,
+      refactor.startZ + i * refactor.laneSpacing
     );
     crystal.rotation.y = pseudoRandom(i + 713) * Math.PI * 2;
     group.add(crystal);
@@ -524,32 +526,62 @@ function createCrystalCluster() {
 }
 
 function createAmusementLightPole(index, side, z, xOffset, heightFactor) {
+  const refactor = CONFIG.sceneRefactor.amusement.lightPole;
   const poleGroup = new THREE.Group();
 
-  const randA = pseudoRandom(index * 17 + (side < 0 ? 3 : 7));
-  const randB = pseudoRandom(index * 29 + (side < 0 ? 11 : 19));
+  const randA = pseudoRandom(
+    index * refactor.randAMultiplier +
+      (side < 0 ? refactor.leftSeedOffsetA : refactor.rightSeedOffsetA)
+  );
+  const randB = pseudoRandom(
+    index * refactor.randBMultiplier +
+      (side < 0 ? refactor.leftSeedOffsetB : refactor.rightSeedOffsetB)
+  );
 
-  const baseHeight = 44 + heightFactor * 22;
-  const randomScale = 0.78 + randA * 0.70;
-  const sideBias = side < 0 ? 0.96 : 1.04;
+  const baseHeight = refactor.baseHeight + heightFactor * refactor.heightFactorMultiplier;
+  const randomScale = refactor.randomScaleBase + randA * refactor.randomScaleMultiplier;
+  const sideBias = side < 0 ? refactor.leftSideBias : refactor.rightSideBias;
 
   let poleHeight = baseHeight * randomScale * sideBias;
-  poleHeight = Math.max(34, Math.min(poleHeight, 120 + heightFactor * 18));
+  poleHeight = Math.max(
+    refactor.minPoleHeight,
+    Math.min(
+      poleHeight,
+      refactor.maxPoleHeightBase + heightFactor * refactor.maxPoleHeightHeightFactor
+    )
+  );
 
-  const bulbRadius = Math.max(4.5, Math.min(9.5, 4.8 + heightFactor * 1.2 + randB * 1.6));
+  const bulbRadius = Math.max(
+    refactor.minBulbRadius,
+    Math.min(
+      refactor.maxBulbRadius,
+      refactor.bulbRadiusBase +
+        heightFactor * refactor.bulbRadiusHeightFactor +
+        randB * refactor.bulbRadiusRandomMultiplier
+    )
+  );
 
-  const poleGeo = new THREE.CylinderGeometry(1.8, 1.8, poleHeight, 8);
+  const poleGeo = new THREE.CylinderGeometry(
+    refactor.poleRadiusTop,
+    refactor.poleRadiusBottom,
+    poleHeight,
+    refactor.poleRadialSegments
+  );
   const poleMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
   const pole = new THREE.Mesh(poleGeo, poleMat);
   pole.position.y = poleHeight / 2;
   poleGroup.add(pole);
 
-  const bulbGeo = new THREE.SphereGeometry(bulbRadius, 12, 12);
+  const bulbGeo = new THREE.SphereGeometry(
+    bulbRadius,
+    refactor.bulbWidthSegments,
+    refactor.bulbHeightSegments
+  );
   const bulbMat = new THREE.MeshBasicMaterial({
-    color: index % 3 === 0 ? 0xff0000 : (index % 3 === 1 ? 0x0000ff : 0xffff00)
+    color: getArrayColor(refactor.bulbColors, index, 0xffffff)
   });
   const bulb = new THREE.Mesh(bulbGeo, bulbMat);
-  bulb.position.y = poleHeight + bulbRadius * 0.9;
+  bulb.position.y = poleHeight + bulbRadius * refactor.bulbYOffsetMultiplier;
   poleGroup.add(bulb);
 
   poleGroup.position.set(side * xOffset, 0, z);
@@ -557,24 +589,33 @@ function createAmusementLightPole(index, side, z, xOffset, heightFactor) {
 }
 
 function createTent(index, side, z, xOffset, heightFactor) {
+  const refactor = CONFIG.sceneRefactor.amusement.tent;
   const tentGroup = new THREE.Group();
-  const scale = 1 + heightFactor * 0.22;
+  const scale = refactor.scaleBase + heightFactor * refactor.scaleHeightFactorMultiplier;
 
-  const baseGeo = new THREE.BoxGeometry(28 * scale, 16 * scale, 28 * scale);
+  const baseGeo = new THREE.BoxGeometry(
+    refactor.baseWidth * scale,
+    refactor.baseHeight * scale,
+    refactor.baseDepth * scale
+  );
   const baseMat = new THREE.MeshLambertMaterial({
-    color: index % 2 === 0 ? 0xfff1e6 : 0xe8f7ff
+    color: getArrayColor(refactor.baseColors, index, 0xffffff)
   });
   const base = new THREE.Mesh(baseGeo, baseMat);
-  base.position.y = 8 * scale;
+  base.position.y = refactor.baseYOffset * scale;
   tentGroup.add(base);
 
-  const roofGeo = new THREE.ConeGeometry(22 * scale, 16 * scale, 4);
+  const roofGeo = new THREE.ConeGeometry(
+    refactor.roofRadius * scale,
+    refactor.roofHeight * scale,
+    refactor.roofRadialSegments
+  );
   const roofMat = new THREE.MeshLambertMaterial({
-    color: index % 2 === 0 ? 0xff5d8f : 0x4d96ff
+    color: getArrayColor(refactor.roofColors, index, 0xff00ff)
   });
   const roof = new THREE.Mesh(roofGeo, roofMat);
-  roof.position.y = 24 * scale;
-  roof.rotation.y = Math.PI * 0.25;
+  roof.position.y = refactor.roofYOffset * scale;
+  roof.rotation.y = refactor.roofRotationY;
   tentGroup.add(roof);
 
   tentGroup.position.set(side * xOffset, 0, z);
@@ -582,20 +623,33 @@ function createTent(index, side, z, xOffset, heightFactor) {
 }
 
 function createFerrisWheel(z, x, heightFactor) {
+  const refactor = CONFIG.sceneRefactor.amusement.ferrisWheel;
   const wheelGroup = new THREE.Group();
-  const radius = 120 + heightFactor * 36;
-  const tube = 8 + heightFactor * 2.4;
-  const standHeight = 180 + heightFactor * 60;
 
-  const ringGeo = new THREE.TorusGeometry(radius, tube, 16, 48);
+  const radius = refactor.baseRadius + heightFactor * refactor.radiusHeightFactorMultiplier;
+  const tube = refactor.baseTube + heightFactor * refactor.tubeHeightFactorMultiplier;
+  const standHeight =
+    refactor.baseStandHeight + heightFactor * refactor.standHeightFactorMultiplier;
+
+  const ringGeo = new THREE.TorusGeometry(
+    radius,
+    tube,
+    refactor.ringRadialSegments,
+    refactor.ringTubularSegments
+  );
   const ringMat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
   const ring = new THREE.Mesh(ringGeo, ringMat);
   ring.rotation.y = Math.PI / 2;
   wheelGroup.add(ring);
 
-  for (let i = 0; i < 8; i++) {
-    const angle = (i / 8) * Math.PI * 2;
-    const spokeGeo = new THREE.CylinderGeometry(2, 2, radius * 1.85, 8);
+  for (let i = 0; i < refactor.spokeCount; i++) {
+    const angle = (i / refactor.spokeCount) * Math.PI * 2;
+    const spokeGeo = new THREE.CylinderGeometry(
+      refactor.spokeRadiusTop,
+      refactor.spokeRadiusBottom,
+      radius * refactor.spokeLengthMultiplier,
+      refactor.spokeRadialSegments
+    );
     const spokeMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
     const spoke = new THREE.Mesh(spokeGeo, spokeMat);
     spoke.rotation.z = Math.PI / 2;
@@ -603,13 +657,17 @@ function createFerrisWheel(z, x, heightFactor) {
     wheelGroup.add(spoke);
   }
 
-  const standGeo = new THREE.BoxGeometry(16, standHeight, 16);
+  const standGeo = new THREE.BoxGeometry(
+    refactor.standWidth,
+    refactor.standHeight,
+    refactor.standDepth
+  );
   const standMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
   const stand = new THREE.Mesh(standGeo, standMat);
-  stand.position.y = -(radius + standHeight * 0.4);
+  stand.position.y = -(radius + standHeight * refactor.standOffsetMultiplier);
   wheelGroup.add(stand);
 
-  wheelGroup.position.set(x, radius + 100, z);
+  wheelGroup.position.set(x, radius + refactor.wheelYBaseOffset, z);
   wheelGroup.userData.spin = true;
 
   return wheelGroup;
@@ -618,31 +676,54 @@ function createFerrisWheel(z, x, heightFactor) {
 function createAmusementSkyline() {
   const group = new THREE.Group();
   const metrics = getBackgroundMetrics();
+  const refactor = CONFIG.sceneRefactor.amusement.skyline;
 
-  const sideX = Math.max(85, metrics.width * 0.32);
-  const laneSpacing = 180;
-  const laneCount = Math.max(10, Math.ceil((metrics.depth + 300) / laneSpacing));
+  const sideX = Math.max(refactor.sideXMin, metrics.width * refactor.sideXWidthMultiplier);
+  const laneCount = Math.max(
+    refactor.laneCountMin,
+    Math.ceil((metrics.depth + refactor.laneCountDepthPadding) / refactor.laneSpacing)
+  );
 
   for (let lane = 0; lane < laneCount; lane++) {
-    const z = 100 + lane * laneSpacing;
+    const z = refactor.laneStartZ + lane * refactor.laneSpacing;
 
     group.add(createAmusementLightPole(lane * 2, -1, z, sideX, metrics.heightFactor));
     group.add(createAmusementLightPole(lane * 2 + 1, 1, z, sideX, metrics.heightFactor));
 
-    if (lane % 3 === 0) {
-      group.add(createTent(lane, -1, z + 40, sideX + 45, metrics.heightFactor));
+    if (lane % refactor.leftTentEvery === 0) {
+      group.add(
+        createTent(
+          lane,
+          -1,
+          z + refactor.leftTentZOffset,
+          sideX + refactor.leftTentXOffset,
+          metrics.heightFactor
+        )
+      );
     }
-    if (lane % 4 === 2) {
-      group.add(createTent(lane + 100, 1, z - 30, sideX + 55, metrics.heightFactor));
+
+    if (lane % refactor.rightTentModulo === refactor.rightTentModuloMatch) {
+      group.add(
+        createTent(
+          lane + 100,
+          1,
+          z + refactor.rightTentZOffset,
+          sideX + refactor.rightTentXOffset,
+          metrics.heightFactor
+        )
+      );
     }
   }
 
-  const wheelSpacing = 2200;
-  const wheelCount = Math.max(1, Math.ceil((metrics.depth + 1000) / wheelSpacing));
+  const wheelCount = Math.max(
+    refactor.wheelCountMin,
+    Math.ceil((metrics.depth + refactor.wheelCountDepthPadding) / refactor.wheelSpacing)
+  );
+
   for (let i = 0; i < wheelCount; i++) {
     const side = i % 2 === 0 ? 1 : -1;
-    const x = side * Math.max(240, metrics.width * 0.34);
-    const z = 1200 + i * wheelSpacing;
+    const x = side * Math.max(refactor.wheelXMin, metrics.width * refactor.wheelXWidthMultiplier);
+    const z = refactor.wheelStartZ + i * refactor.wheelSpacing;
     group.add(createFerrisWheel(z, x, metrics.heightFactor));
   }
 
@@ -650,66 +731,87 @@ function createAmusementSkyline() {
 }
 
 function createCityBuilding(index, z, side, xOffset, heightFactor) {
+  const refactor = CONFIG.sceneRefactor.cityNight.building;
   const group = new THREE.Group();
 
-  const width = 34 + pseudoRandom(index + 1000) * 90;
-  const depth = 28 + pseudoRandom(index + 1001) * 70;
-  const height = 90 + pseudoRandom(index + 1002) * (180 + heightFactor * 140);
+  const width = refactor.widthBase + pseudoRandom(index + 1000) * refactor.widthRandomMultiplier;
+  const depth = refactor.depthBase + pseudoRandom(index + 1001) * refactor.depthRandomMultiplier;
+  const height =
+    refactor.heightBase +
+    pseudoRandom(index + 1002) *
+      (refactor.heightRandomBase + heightFactor * refactor.heightRandomHeightFactorMultiplier);
 
   const bodyGeo = new THREE.BoxGeometry(width, height, depth);
   const bodyMat = new THREE.MeshLambertMaterial({
     color: index % 3 === 0 ? 0x1a1f2e : (index % 3 === 1 ? 0x101827 : 0x202636),
     emissive: 0x06080d,
-    emissiveIntensity: 0.35
+    emissiveIntensity: refactor.emissiveIntensity
   });
   const body = new THREE.Mesh(bodyGeo, bodyMat);
   body.position.y = height / 2;
   group.add(body);
 
-  const cols = Math.max(2, Math.floor(width / 14));
-  const rows = Math.max(4, Math.floor(height / 16));
+  const cols = Math.max(refactor.colsMin, Math.floor(width / refactor.colsWidthDivisor));
+  const rows = Math.max(refactor.rowsMin, Math.floor(height / refactor.rowsHeightDivisor));
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (pseudoRandom(index * 200 + r * 31 + c * 17) < 0.85) continue;
+      if (pseudoRandom(index * 200 + r * 31 + c * 17) < refactor.windowSkipThreshold) {
+        continue;
+      }
 
-      const winGeo = new THREE.PlaneGeometry(5, 7);
+      const winGeo = new THREE.PlaneGeometry(refactor.windowWidth, refactor.windowHeight);
       const warm = pseudoRandom(index * 300 + r * 11 + c * 7);
       const color = warm < 0.5 ? 0xffd77a : (warm < 0.8 ? 0x9fd3ff : 0xff9ecf);
 
       const winMat = new THREE.MeshBasicMaterial({
         color,
         transparent: true,
-        opacity: 0.9
+        opacity: refactor.windowOpacity
       });
 
       const front = new THREE.Mesh(winGeo, winMat);
       front.position.set(
-        -width / 2 + 10 + c * ((width - 20) / Math.max(1, cols - 1)),
-        10 + r * ((height - 20) / Math.max(1, rows - 1)),
-        depth / 2 + 0.2
+        -width / 2 +
+          refactor.windowInsetX +
+          c * ((width - refactor.windowInsetX * 2) / Math.max(1, cols - 1)),
+        refactor.windowInsetY +
+          r * ((height - refactor.windowInsetY * 2) / Math.max(1, rows - 1)),
+        depth / 2 + refactor.windowInsetZ
       );
       group.add(front);
 
       const back = new THREE.Mesh(winGeo, winMat);
-      back.position.set(front.position.x, front.position.y, -depth / 2 - 0.2);
+      back.position.set(front.position.x, front.position.y, -depth / 2 - refactor.windowInsetZ);
       back.rotation.y = Math.PI;
       group.add(back);
     }
   }
 
-  if (pseudoRandom(index + 1003) > 0.55) {
-    const antennaHeight = 16 + pseudoRandom(index + 1004) * 34;
-    const antennaGeo = new THREE.CylinderGeometry(0.8, 0.8, antennaHeight, 6);
+  if (pseudoRandom(index + 1003) > refactor.antennaThreshold) {
+    const antennaHeight =
+      refactor.antennaHeightBase +
+      pseudoRandom(index + 1004) * refactor.antennaHeightRandomMultiplier;
+
+    const antennaGeo = new THREE.CylinderGeometry(
+      refactor.antennaRadiusTop,
+      refactor.antennaRadiusBottom,
+      antennaHeight,
+      refactor.antennaRadialSegments
+    );
     const antennaMat = new THREE.MeshLambertMaterial({ color: 0xaab4c8 });
     const antenna = new THREE.Mesh(antennaGeo, antennaMat);
     antenna.position.set(0, height + antennaHeight / 2, 0);
     group.add(antenna);
 
-    const beaconGeo = new THREE.SphereGeometry(2.4, 8, 8);
+    const beaconGeo = new THREE.SphereGeometry(
+      refactor.beaconRadius,
+      refactor.beaconWidthSegments,
+      refactor.beaconHeightSegments
+    );
     const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff4d6d });
     const beacon = new THREE.Mesh(beaconGeo, beaconMat);
-    beacon.position.set(0, height + antennaHeight + 2, 0);
+    beacon.position.set(0, height + antennaHeight + refactor.beaconYOffset, 0);
     group.add(beacon);
   }
 
@@ -718,20 +820,33 @@ function createCityBuilding(index, z, side, xOffset, heightFactor) {
 }
 
 function createStreetLamp(index, z, side, xOffset, heightFactor) {
+  const refactor = CONFIG.sceneRefactor.cityNight.streetLamp;
   const lampGroup = new THREE.Group();
 
-  const poleHeight = 20 + pseudoRandom(index + 1400) * 18 + heightFactor * 4;
+  const poleHeight =
+    refactor.poleHeightBase +
+    pseudoRandom(index + 1400) * refactor.poleHeightRandomMultiplier +
+    heightFactor * refactor.poleHeightFactorMultiplier;
 
-  const poleGeo = new THREE.CylinderGeometry(1.2, 1.5, poleHeight, 8);
+  const poleGeo = new THREE.CylinderGeometry(
+    refactor.poleRadiusTop,
+    refactor.poleRadiusBottom,
+    poleHeight,
+    refactor.poleRadialSegments
+  );
   const poleMat = new THREE.MeshLambertMaterial({ color: 0xb8c2d6 });
   const pole = new THREE.Mesh(poleGeo, poleMat);
   pole.position.y = poleHeight / 2;
   lampGroup.add(pole);
 
-  const headGeo = new THREE.SphereGeometry(3.8, 10, 10);
+  const headGeo = new THREE.SphereGeometry(
+    refactor.headRadius,
+    refactor.headWidthSegments,
+    refactor.headHeightSegments
+  );
   const headMat = new THREE.MeshBasicMaterial({ color: 0xffd58a });
   const head = new THREE.Mesh(headGeo, headMat);
-  head.position.y = poleHeight + 2.5;
+  head.position.y = poleHeight + refactor.headYOffset;
   lampGroup.add(head);
 
   lampGroup.position.set(side * xOffset, 0, z);
@@ -741,23 +856,51 @@ function createStreetLamp(index, z, side, xOffset, heightFactor) {
 function createCityNightScenery() {
   const group = new THREE.Group();
   const metrics = getBackgroundMetrics();
+  const refactor = CONFIG.sceneRefactor.cityNight.scenery;
 
-  const laneSpacing = 300;
-  const laneCount = Math.max(18, Math.ceil((metrics.depth + 400) / laneSpacing));
-  const baseX = Math.max(120, metrics.width * 0.36);
+  const laneCount = Math.max(
+    refactor.laneCountMin,
+    Math.ceil((metrics.depth + refactor.laneCountDepthPadding) / refactor.laneSpacing)
+  );
+  const baseX = Math.max(refactor.baseXMin, metrics.width * refactor.baseXWidthMultiplier);
+  const lampX = Math.max(refactor.lampXMin, metrics.width * refactor.lampXWidthMultiplier);
 
   for (let i = 0; i < laneCount; i++) {
-    const z = 80 + i * laneSpacing;
+    const z = refactor.laneStartZ + i * refactor.laneSpacing;
 
-    const leftX = baseX + pseudoRandom(i + 1500) * 120;
-    const rightX = baseX + pseudoRandom(i + 1600) * 120;
+    const leftX = baseX + pseudoRandom(i + 1500) * refactor.leftXRandomMultiplier;
+    const rightX = baseX + pseudoRandom(i + 1600) * refactor.rightXRandomMultiplier;
 
     group.add(createCityBuilding(i * 2, z, -1, leftX, metrics.heightFactor));
-    group.add(createCityBuilding(i * 2 + 1, z + 30, 1, rightX, metrics.heightFactor));
+    group.add(
+      createCityBuilding(
+        i * 2 + 1,
+        z + refactor.rightBuildingZOffset,
+        1,
+        rightX,
+        metrics.heightFactor
+      )
+    );
 
-    if (i % 2 === 0) {
-      group.add(createStreetLamp(i * 2, z + 20, -1, Math.max(80, metrics.width * 0.22), metrics.heightFactor));
-      group.add(createStreetLamp(i * 2 + 1, z - 10, 1, Math.max(80, metrics.width * 0.22), metrics.heightFactor));
+    if (i % refactor.lampEvery === 0) {
+      group.add(
+        createStreetLamp(
+          i * 2,
+          z + refactor.leftLampZOffset,
+          -1,
+          lampX,
+          metrics.heightFactor
+        )
+      );
+      group.add(
+        createStreetLamp(
+          i * 2 + 1,
+          z + refactor.rightLampZOffset,
+          1,
+          lampX,
+          metrics.heightFactor
+        )
+      );
     }
   }
 
@@ -767,23 +910,46 @@ function createCityNightScenery() {
 function createAnalysisBackdrop() {
   const group = new THREE.Group();
   const metrics = getBackgroundMetrics();
+  const refactor = CONFIG.sceneRefactor.analysis;
 
-  const panelWidth = Math.max(1400, metrics.width * 1.4);
-  const panelHeight = Math.max(120, Math.min(320, 120 + metrics.heightFactor * 45));
-  const layerSpacingY = Math.max(90, Math.min(220, metrics.maxY / 6 + metrics.heightFactor * 10));
-  const layerCount = Math.max(8, Math.ceil((metrics.maxY + 500) / layerSpacingY));
-  const zSpacing = 420;
-  const zCount = Math.max(10, Math.ceil((metrics.depth + 1000) / zSpacing));
+  const panelWidth = Math.max(refactor.panelWidthMin, metrics.width * refactor.panelWidthMultiplier);
+  const panelHeight = Math.max(
+    refactor.panelHeightMin,
+    Math.min(
+      refactor.panelHeightMax,
+      refactor.panelHeightBase +
+        metrics.heightFactor * refactor.panelHeightHeightFactorMultiplier
+    )
+  );
+
+  const layerSpacingY = Math.max(
+    refactor.layerSpacingYMin,
+    Math.min(
+      refactor.layerSpacingYMax,
+      metrics.maxY / refactor.layerSpacingYMaxYDivisor +
+        metrics.heightFactor * refactor.layerSpacingYHeightFactorMultiplier
+    )
+  );
+
+  const layerCount = Math.max(
+    refactor.layerCountMin,
+    Math.ceil((metrics.maxY + refactor.layerCountYPadding) / layerSpacingY)
+  );
+
+  const zCount = Math.max(
+    refactor.zCountMin,
+    Math.ceil((metrics.depth + refactor.zCountDepthPadding) / refactor.zSpacing)
+  );
 
   for (let zi = 0; zi < zCount; zi++) {
-    const z = 400 + zi * zSpacing;
+    const z = refactor.zStart + zi * refactor.zSpacing;
 
     for (let yi = 0; yi < layerCount; yi++) {
       const geo = new THREE.PlaneGeometry(panelWidth, panelHeight);
       const mat = new THREE.MeshBasicMaterial({
         color: (yi + zi) % 2 === 0 ? 0xdde7ff : 0xffffff,
         transparent: true,
-        opacity: yi % 3 === 0 ? 0.28 : 0.18,
+        opacity: yi % 3 === 0 ? refactor.strongOpacity : refactor.weakOpacity,
         depthWrite: false
       });
 
@@ -866,16 +1032,27 @@ function createHeightGuides() {
   const guideGroup = new THREE.Group();
   const theme = getCurrentTheme();
   const { maxY } = getGroundMetrics();
+  const guideConfig = CONFIG.sceneRefactor.guides;
 
-  const guideStep = Math.max(20, Math.ceil(maxY / 6 / 10) * 10);
-  const width = Math.max(180, getDynamicGroundSize().width * 0.45);
-  const depth = app.coursePoints.length > 0
-    ? app.coursePoints[app.coursePoints.length - 1].z + 200
-    : 3000;
+  const guideStep = Math.max(
+    guideConfig.stepMin,
+    Math.ceil(maxY / guideConfig.stepDivisor / guideConfig.stepRoundUnit) *
+      guideConfig.stepRoundUnit
+  );
+
+  const width = Math.max(
+    guideConfig.widthMin,
+    getDynamicGroundSize().width * guideConfig.widthMultiplier
+  );
+
+  const depth =
+    app.coursePoints.length > 0
+      ? app.coursePoints[app.coursePoints.length - 1].z + guideConfig.builtDepthPadding
+      : guideConfig.fallbackDepth;
 
   for (let y = 0; y <= maxY + guideStep; y += guideStep) {
     const points = [
-      new THREE.Vector3(-width, y, -100),
+      new THREE.Vector3(-width, y, guideConfig.lineStartZ),
       new THREE.Vector3(width, y, depth)
     ];
 
@@ -884,8 +1061,8 @@ function createHeightGuides() {
       color: theme.guideColor,
       transparent: true,
       opacity: theme.guideOpacity,
-      dashSize: 16,
-      gapSize: 10
+      dashSize: guideConfig.dashSize,
+      gapSize: guideConfig.gapSize
     });
 
     const line = new THREE.Line(geo, mat);
@@ -893,7 +1070,11 @@ function createHeightGuides() {
     guideGroup.add(line);
   }
 
-  const sampleStep = Math.max(1, Math.floor(app.coursePoints.length / 70));
+  const sampleStep = Math.max(
+    1,
+    Math.floor(app.coursePoints.length / guideConfig.sampleCountTarget)
+  );
+
   for (let i = 0; i < app.coursePoints.length; i += sampleStep) {
     const p = app.coursePoints[i];
 
@@ -905,7 +1086,7 @@ function createHeightGuides() {
     const mat = new THREE.LineBasicMaterial({
       color: theme.guideColor,
       transparent: true,
-      opacity: theme.guideOpacity + 0.10
+      opacity: theme.guideOpacity + guideConfig.verticalOpacityBoost
     });
 
     const line = new THREE.Line(geo, mat);
@@ -971,18 +1152,23 @@ export function rebuildSceneTheme() {
 export function animateBackground() {
   if (!app.backgroundGroup) return;
 
+  const animationConfig = CONFIG.sceneRefactor.animation;
+  const amusementAnimationConfig = CONFIG.sceneRefactor.amusement.animation;
+
   for (const child of app.backgroundGroup.children) {
     if (child.userData.kind === 'nebula') {
       for (let i = 0; i < child.children.length; i++) {
         child.children[i].rotation.z +=
-          CONFIG.background.nebula.spinSpeed * 1.15 * (i % 2 === 0 ? 1 : -1);
+          CONFIG.background.nebula.spinSpeed *
+          animationConfig.nebulaSpinMultiplier *
+          (i % 2 === 0 ? 1 : -1);
       }
     }
 
     if (child.userData.kind === 'amusement') {
       for (const part of child.children) {
         if (part.userData.spin) {
-          part.rotation.z += 0.01;
+          part.rotation.z += amusementAnimationConfig.spinStep;
         }
       }
     }
@@ -991,14 +1177,16 @@ export function animateBackground() {
       for (let i = 0; i < child.children.length; i++) {
         const orb = child.children[i];
         const seed = orb.userData.floatSeed || i;
-        orb.position.y += Math.sin(performance.now() * 0.0007 + seed) * 0.03;
+        orb.position.y +=
+          Math.sin(performance.now() * animationConfig.orbFloatTimeMultiplier + seed) *
+          animationConfig.orbFloatAmplitude;
       }
     }
 
     if (child.userData.kind === 'spacePlanets') {
       for (const part of child.children) {
         if (part.userData.kind === 'spacePlanet') {
-          part.rotation.y += part.userData.spinSpeed || 0.001;
+          part.rotation.y += part.userData.spinSpeed || animationConfig.planetFallbackSpin;
         }
       }
     }
