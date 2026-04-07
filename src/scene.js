@@ -962,12 +962,157 @@ function createAnalysisBackdrop() {
   return group;
 }
 
+function createFutureTower(seed, z, side, baseX, heightFactor) {
+  const group = new THREE.Group();
+
+  const width = 28 + ((seed * 17) % 70);
+  const depth = 24 + ((seed * 13) % 50);
+  const height = 120 + ((seed * 29) % 220) + heightFactor * 40;
+
+  const x = side * (baseX + ((seed * 19) % 120));
+
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(width, height, depth),
+    new THREE.MeshStandardMaterial({
+      color: 0x101a30,
+      emissive: 0x081018,
+      emissiveIntensity: 0.45,
+      metalness: 0.85,
+      roughness: 0.35
+    })
+  );
+  body.position.set(x, height * 0.5, z);
+  group.add(body);
+
+  const windowMat = new THREE.MeshBasicMaterial({
+    color: seed % 2 === 0 ? 0x55dfff : 0xff4fd8,
+    transparent: true,
+    opacity: 0.9
+  });
+
+  const cols = Math.max(2, Math.floor(width / 12));
+  const rows = Math.max(6, Math.floor(height / 18));
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      if (((seed + row * 7 + col * 11) % 10) > 7) continue;
+
+      const win = new THREE.Mesh(
+        new THREE.PlaneGeometry(4.5, 6.5),
+        windowMat
+      );
+
+      win.position.set(
+        x - width * 0.5 + 8 + col * ((width - 16) / Math.max(1, cols - 1)),
+        10 + row * ((height - 20) / Math.max(1, rows - 1)),
+        z + depth * 0.5 + 0.2
+      );
+      group.add(win);
+    }
+  }
+
+  const crown = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.9, 0.9, 18 + (seed % 20), 6),
+    new THREE.MeshStandardMaterial({
+      color: 0x99ccff,
+      emissive: 0x44d8ff,
+      emissiveIntensity: 1.0
+    })
+  );
+  crown.position.set(x, height + 10, z);
+  group.add(crown);
+
+  const beacon = new THREE.Mesh(
+    new THREE.SphereGeometry(2.6, 10, 10),
+    new THREE.MeshBasicMaterial({
+      color: seed % 2 === 0 ? 0x44d8ff : 0xff4fd8
+    })
+  );
+  beacon.position.set(x, height + 20, z);
+  beacon.userData.kind = 'futureBeacon';
+  beacon.userData.blinkSeed = seed * 0.37;
+  group.add(beacon);
+
+  return group;
+}
+
+function createSkyBridge(z, halfSpan) {
+  const group = new THREE.Group();
+
+  const beam = new THREE.Mesh(
+    new THREE.BoxGeometry(halfSpan * 2, 6, 10),
+    new THREE.MeshStandardMaterial({
+      color: 0x1a2946,
+      emissive: 0x224488,
+      emissiveIntensity: 0.45,
+      metalness: 0.8,
+      roughness: 0.35
+    })
+  );
+  beam.position.set(0, 120, z);
+  group.add(beam);
+
+  const railMat = new THREE.MeshBasicMaterial({ color: 0x55dfff });
+
+  const rail1 = new THREE.Mesh(new THREE.BoxGeometry(halfSpan * 2, 1, 1), railMat);
+  rail1.position.set(0, 123.5, z + 4);
+  group.add(rail1);
+
+  const rail2 = rail1.clone();
+  rail2.position.z = z - 4;
+  group.add(rail2);
+
+  return group;
+}
+
+function createHoverLane(z, halfSpan) {
+  const lane = new THREE.Mesh(
+    new THREE.BoxGeometry(halfSpan * 2, 0.8, 8),
+    new THREE.MeshBasicMaterial({
+      color: 0x66d9ff,
+      transparent: true,
+      opacity: 0.28
+    })
+  );
+  lane.position.set(0, 46, z);
+  lane.userData.kind = 'futureHoverLane';
+  lane.userData.floatSeed = z * 0.01;
+  return lane;
+}
+
 function clearBackground() {
   if (app.backgroundGroup) {
     disposeObject3D(app.backgroundGroup);
     app.scene.remove(app.backgroundGroup);
     app.backgroundGroup = null;
   }
+}
+
+function createFutureCityScenery() {
+  const group = new THREE.Group();
+
+  const metrics = getBackgroundMetrics();
+  const sideX = Math.max(140, metrics.width * 0.34);
+
+  const laneSpacing = 170;
+  const laneCount = Math.max(14, Math.ceil((metrics.depth + 1000) / laneSpacing));
+
+  for (let i = 0; i < laneCount; i++) {
+    const z = 100 + i * laneSpacing;
+
+    group.add(createFutureTower(i * 2, z, -1, sideX, metrics.heightFactor));
+    group.add(createFutureTower(i * 2 + 1, z + 40, 1, sideX, metrics.heightFactor));
+
+    if (i % 3 === 0) {
+      group.add(createSkyBridge(z + 30, sideX * 0.92));
+    }
+
+    if (i % 2 === 0) {
+      group.add(createHoverLane(z + 10, sideX * 0.55));
+    }
+  }
+
+  return group;
 }
 
 export function createBackground() {
@@ -1007,6 +1152,10 @@ export function createBackground() {
   } else if (theme.backgroundKind === 'cityNight') {
     const city = createCityNightScenery();
     city.userData.kind = 'cityNight';
+    backgroundGroup.add(city);
+  } else if (theme.backgroundKind === 'futureCity') {
+    const city = createFutureCityScenery();
+    city.userData.kind = 'futureCity';
     backgroundGroup.add(city);
   }
 
@@ -1189,6 +1338,26 @@ export function animateBackground() {
           part.rotation.y += part.userData.spinSpeed || animationConfig.planetFallbackSpin;
         }
       }
+    }
+
+    if (child.userData.kind === 'futureCity') {
+      const time = performance.now() * 0.003;
+
+      child.traverse((part) => {
+        if (part.userData.kind === 'futureBeacon') {
+          const seed = part.userData.blinkSeed || 0;
+          const s = 0.65 + Math.sin(time * 2.4 + seed) * 0.35;
+          part.scale.setScalar(Math.max(0.6, s));
+          if (part.material && 'opacity' in part.material) {
+            part.material.opacity = 0.7 + Math.sin(time * 2.4 + seed) * 0.3;
+          }
+        }
+
+        if (part.userData.kind === 'futureHoverLane') {
+          const seed = part.userData.floatSeed || 0;
+          part.position.y = 46 + Math.sin(time + seed) * 0.9;
+        }
+      });
     }
   }
 }

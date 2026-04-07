@@ -66,7 +66,8 @@ export const CONFIG = {
       { value: 'space', label: '宇宙' },
       { value: 'amusement', label: '明るい遊園地' },
       { value: 'analysis', label: '解析モード' },
-      { value: 'cityNight', label: '都会の夜景' }
+      { value: 'cityNight', label: '都会の夜景' },
+      { value: 'futureCity', label: '未来都市' }
     ],
 
     csvOptions: [
@@ -382,7 +383,31 @@ export const CONFIG = {
         backgroundKind: 'cityNight',
         guideColor: 0x8fc4ff,
         guideOpacity: 0.28
-      }
+      },
+
+      futureCity: {
+        sceneBackground: 0x030712,
+        fogColor: 0x081020,
+        fogDensity: 0.00014,
+        ground: {
+          opacity: 0.98,
+          backgroundColor: '#090f1f',
+          gradTop: 'rgba(80,170,255,0.14)',
+          gradMid: 'rgba(0,0,0,0.00)',
+          gradBottom: 'rgba(255,0,200,0.10)',
+          gridColor: 'rgba(120,220,255,0.22)',
+          glowDotColor: 'rgba(255,80,220,0.08)',
+          cells: 16
+        },
+        lighting: {
+          directional: { color: 0xeaf6ff, intensity: 1.00 },
+          ambient: { color: 0x8db4ff, intensity: 0.92 },
+          point: { color: 0x44d8ff, intensity: 0.95 }
+        },
+        backgroundKind: 'futureCity',
+        guideColor: 0x66d9ff,
+        guideOpacity: 0.30
+      },
     },
 
     metrics: {
