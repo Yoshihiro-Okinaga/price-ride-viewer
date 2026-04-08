@@ -824,11 +824,8 @@ export const CONFIG = {
         bridgeZOffset: 70,
         cloudEvery: 1,
         cloudZOffset: 40,
-        auraEvery: 1,
-        auraZOffset: 20,
-        sigilEvery: 2,
-        sigilZOffset: 34,
-        motesPerLane: 8
+        auroraEvery: 1,
+        moteEvery: 1
       },
       island: {
         radiusTopBase: 34,
@@ -872,10 +869,22 @@ export const CONFIG = {
         haloTube: 0.75,
         haloColor: 0xfff0b0,
         haloOpacity: 0.60,
+        rearHaloRadius: 22,
+        rearHaloTube: 1.1,
+        rearHaloColor: 0xe8e0ff,
+        rearHaloOpacity: 0.28,
         orbRadius: 3.2,
         orbColor: 0xfff6cc,
         orbEmissive: 0xffdd88,
-        orbEmissiveIntensity: 1.1
+        orbEmissiveIntensity: 1.1,
+        veilWidth: 52,
+        veilHeight: 56,
+        veilColor: 0xfaf3ff,
+        veilOpacity: 0.20,
+        lightfallWidth: 22,
+        lightfallHeight: 120,
+        lightfallColor: 0xfff2bf,
+        lightfallOpacity: 0.18
       },
       bridge: {
         widthScale: 0.72,
@@ -901,38 +910,33 @@ export const CONFIG = {
         driftSpeedBase: 0.11,
         driftSpeedRandom: 0.16
       },
-      aura: {
-        widthBase: 110,
-        widthRandom: 90,
-        heightBase: 150,
+      aurora: {
+        widthBase: 180,
+        widthRandom: 140,
+        heightBase: 180,
         heightRandom: 120,
-        yBase: 110,
-        yRandom: 70,
-        xInset: 34,
-        colors: [0xfff7d1, 0xcce8ff, 0xe9d7ff],
-        opacityBase: 0.18,
-        opacityRandom: 0.14
-      },
-      sigil: {
-        radiusBase: 8,
-        radiusRandom: 8,
-        tube: 0.32,
-        yOffset: 8,
-        color: 0xffe9a8,
-        opacity: 0.66,
-        glyphWidth: 0.9,
-        glyphHeight: 3.2,
-        glyphCount: 10
+        yBase: 150,
+        yRandom: 120,
+        xRangeMultiplier: 0.82,
+        colors: [0xfdf1ff, 0xe3f6ff, 0xfff3c6, 0xded5ff],
+        opacityBase: 0.12,
+        opacityRandom: 0.12,
+        swayAmplitude: 18,
+        driftSpeedBase: 0.002,
+        driftSpeedRandom: 0.003
       },
       motes: {
-        sizeBase: 0.9,
-        sizeRandom: 1.0,
-        yBase: 72,
-        yRandom: 80,
-        xRangeMultiplier: 0.95,
-        colors: [0xfff6cf, 0xd6f2ff, 0xf0ddff],
-        opacityBase: 0.55,
-        opacityRandom: 0.35
+        count: 18,
+        spreadX: 120,
+        spreadY: 120,
+        spreadZ: 90,
+        sizeBase: 0.7,
+        sizeRandom: 1.2,
+        colors: [0xffffff, 0xfff1c2, 0xe8f5ff, 0xf0deff],
+        opacityBase: 0.45,
+        opacityRandom: 0.28,
+        riseSpeedBase: 0.10,
+        riseSpeedRandom: 0.16
       },
       animation: {
         tempo: 1.0,
@@ -943,14 +947,12 @@ export const CONFIG = {
         cloudFloatSpeed: 0.75,
         bannerPulseSpeed: 1.9,
         bannerPulseAmplitude: 0.20,
-        auraWaveSpeed: 1.3,
-        auraWaveAmplitude: 0.22,
-        sigilSpin: 0.018,
-        sigilPulseAmplitude: 0.22,
-        moteRiseSpeed: 0.20,
-        moteRiseResetY: 190,
-        moteTwinkleSpeed: 2.2,
-        moteTwinkleAmplitude: 0.20
+        auroraPulseSpeed: 0.9,
+        auroraPulseAmplitude: 0.10,
+        veilPulseSpeed: 1.5,
+        veilPulseAmplitude: 0.10,
+        moteTwinkleSpeed: 1.8,
+        moteTwinkleAmplitude: 0.22
       }
     },
 
