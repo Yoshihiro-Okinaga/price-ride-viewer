@@ -962,21 +962,26 @@ function createAnalysisBackdrop() {
   return group;
 }
 
-function createFutureTower(seed, z, side, baseX, heightFactor) {
+function createFutureTower(seed, z, side, baseX, heightFactor, futureConfig) {
   const group = new THREE.Group();
+  const towerConfig = futureConfig.tower;
+  const beaconConfig = futureConfig.beacon;
 
-  const width = 28 + ((seed * 17) % 70);
-  const depth = 24 + ((seed * 13) % 50);
-  const height = 120 + ((seed * 29) % 220) + heightFactor * 40;
+  const width = towerConfig.widthBase + ((seed * 17) % towerConfig.widthRandom);
+  const depth = towerConfig.depthBase + ((seed * 13) % towerConfig.depthRandom);
+  const height =
+    towerConfig.heightBase +
+    ((seed * 29) % towerConfig.heightRandom) +
+    heightFactor * towerConfig.heightFactorMultiplier;
 
-  const x = side * (baseX + ((seed * 19) % 120));
+  const x = side * (baseX + ((seed * 19) % towerConfig.xJitter));
 
   const body = new THREE.Mesh(
     new THREE.BoxGeometry(width, height, depth),
     new THREE.MeshStandardMaterial({
-      color: 0x101a30,
-      emissive: 0x081018,
-      emissiveIntensity: 0.45,
+      color: towerConfig.bodyColor,
+      emissive: towerConfig.bodyEmissive,
+      emissiveIntensity: towerConfig.bodyEmissiveIntensity,
       metalness: 0.85,
       roughness: 0.35
     })
@@ -985,9 +990,9 @@ function createFutureTower(seed, z, side, baseX, heightFactor) {
   group.add(body);
 
   const windowMat = new THREE.MeshBasicMaterial({
-    color: seed % 2 === 0 ? 0x55dfff : 0xff4fd8,
+    color: getArrayColor(towerConfig.windowColors, seed, 0x55dfff),
     transparent: true,
-    opacity: 0.9
+    opacity: towerConfig.windowOpacity
   });
 
   const cols = Math.max(2, Math.floor(width / 12));
@@ -995,7 +1000,8 @@ function createFutureTower(seed, z, side, baseX, heightFactor) {
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      if (((seed + row * 7 + col * 11) % 10) > 7) continue;
+      const randomGate = pseudoRandom(seed * 0.13 + row * 0.31 + col * 0.73);
+      if (randomGate > towerConfig.windowSkipThreshold) continue;
 
       const win = new THREE.Mesh(
         new THREE.PlaneGeometry(4.5, 6.5),
@@ -1011,73 +1017,195 @@ function createFutureTower(seed, z, side, baseX, heightFactor) {
     }
   }
 
+  const rooftopRing = new THREE.Mesh(
+    new THREE.TorusGeometry(Math.max(width, depth) * 0.18, 0.45, 8, 18),
+    new THREE.MeshStandardMaterial({
+      color: towerConfig.rooftopRingColor,
+      emissive: towerConfig.rooftopRingEmissive,
+      emissiveIntensity: towerConfig.rooftopRingEmissiveIntensity,
+      transparent: true,
+      opacity: 0.92
+    })
+  );
+  rooftopRing.rotation.x = Math.PI * 0.5;
+  rooftopRing.position.set(x, height + 6, z);
+  rooftopRing.userData.kind = 'futureRooftopRing';
+  rooftopRing.userData.pulseSeed = seed * 0.41;
+  group.add(rooftopRing);
+
   const crown = new THREE.Mesh(
     new THREE.CylinderGeometry(0.9, 0.9, 18 + (seed % 20), 6),
     new THREE.MeshStandardMaterial({
-      color: 0x99ccff,
-      emissive: 0x44d8ff,
-      emissiveIntensity: 1.0
+      color: towerConfig.crownColor,
+      emissive: towerConfig.crownEmissive,
+      emissiveIntensity: towerConfig.crownEmissiveIntensity
     })
   );
   crown.position.set(x, height + 10, z);
   group.add(crown);
 
+  const beaconColor = getArrayColor(beaconConfig.colors, seed, 0x44d8ff);
   const beacon = new THREE.Mesh(
     new THREE.SphereGeometry(2.6, 10, 10),
     new THREE.MeshBasicMaterial({
-      color: seed % 2 === 0 ? 0x44d8ff : 0xff4fd8
+      color: beaconColor,
+      transparent: true,
+      opacity: beaconConfig.baseOpacity
     })
   );
   beacon.position.set(x, height + 20, z);
   beacon.userData.kind = 'futureBeacon';
   beacon.userData.blinkSeed = seed * 0.37;
+  beacon.userData.baseOpacity = beaconConfig.baseOpacity;
   group.add(beacon);
+
+  const beaconHalo = new THREE.Mesh(
+    new THREE.SphereGeometry(5.8, 8, 8),
+    new THREE.MeshBasicMaterial({
+      color: beaconColor,
+      transparent: true,
+      opacity: 0.24,
+      depthWrite: false
+    })
+  );
+  beaconHalo.position.copy(beacon.position);
+  beaconHalo.userData.kind = 'futureBeaconHalo';
+  beaconHalo.userData.blinkSeed = seed * 0.37 + 0.6;
+  beaconHalo.userData.baseOpacity = 0.24;
+  group.add(beaconHalo);
 
   return group;
 }
 
-function createSkyBridge(z, halfSpan) {
+function createSkyBridge(seed, z, halfSpan, futureConfig) {
   const group = new THREE.Group();
+  const bridgeConfig = futureConfig.bridge;
 
   const beam = new THREE.Mesh(
     new THREE.BoxGeometry(halfSpan * 2, 6, 10),
     new THREE.MeshStandardMaterial({
-      color: 0x1a2946,
-      emissive: 0x224488,
-      emissiveIntensity: 0.45,
+      color: bridgeConfig.beamColor,
+      emissive: bridgeConfig.beamEmissive,
+      emissiveIntensity: bridgeConfig.beamEmissiveIntensity,
       metalness: 0.8,
       roughness: 0.35
     })
   );
-  beam.position.set(0, 120, z);
+  beam.position.set(0, bridgeConfig.y, z);
   group.add(beam);
 
-  const railMat = new THREE.MeshBasicMaterial({ color: 0x55dfff });
+  const railMat = new THREE.MeshBasicMaterial({ color: bridgeConfig.railColor });
 
   const rail1 = new THREE.Mesh(new THREE.BoxGeometry(halfSpan * 2, 1, 1), railMat);
-  rail1.position.set(0, 123.5, z + 4);
+  rail1.position.set(0, bridgeConfig.y + 3.5, z + 4);
   group.add(rail1);
 
   const rail2 = rail1.clone();
   rail2.position.z = z - 4;
   group.add(rail2);
 
+  const stripColor = seed % 2 === 0 ? bridgeConfig.stripColorA : bridgeConfig.stripColorB;
+  const stripMat = new THREE.MeshBasicMaterial({
+    color: stripColor,
+    transparent: true,
+    opacity: bridgeConfig.stripOpacity
+  });
+
+  const strip1 = new THREE.Mesh(new THREE.BoxGeometry(halfSpan * 2, 0.45, 0.9), stripMat);
+  strip1.position.set(0, bridgeConfig.y - 2.2, z + 4.6);
+  strip1.userData.kind = 'futureBridgeStrip';
+  strip1.userData.pulseSeed = seed * 0.19;
+  strip1.userData.baseOpacity = bridgeConfig.stripOpacity;
+  group.add(strip1);
+
+  const strip2 = strip1.clone();
+  strip2.position.z = z - 4.6;
+  strip2.userData.pulseSeed = seed * 0.19 + 0.8;
+  group.add(strip2);
+
   return group;
 }
 
-function createHoverLane(z, halfSpan) {
+function createHoverLane(seed, z, halfSpan, futureConfig) {
+  const hoverConfig = futureConfig.hoverLane;
+  const laneGroup = new THREE.Group();
+
   const lane = new THREE.Mesh(
     new THREE.BoxGeometry(halfSpan * 2, 0.8, 8),
     new THREE.MeshBasicMaterial({
-      color: 0x66d9ff,
+      color: hoverConfig.color,
       transparent: true,
-      opacity: 0.28
+      opacity: hoverConfig.baseOpacity
     })
   );
-  lane.position.set(0, 46, z);
+  lane.position.set(0, hoverConfig.y, z);
   lane.userData.kind = 'futureHoverLane';
-  lane.userData.floatSeed = z * 0.01;
-  return lane;
+  lane.userData.floatSeed = z * 0.01 + seed * 0.1;
+  lane.userData.baseY = hoverConfig.y;
+  lane.userData.baseOpacity = hoverConfig.baseOpacity;
+  laneGroup.add(lane);
+
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(Math.max(halfSpan * 0.24, 5), 0.22, 8, 26),
+    new THREE.MeshBasicMaterial({
+      color: hoverConfig.ringColor,
+      transparent: true,
+      opacity: hoverConfig.ringOpacity,
+      depthWrite: false
+    })
+  );
+  ring.rotation.x = Math.PI * 0.5;
+  ring.position.set(0, hoverConfig.y - 1.4, z);
+  ring.userData.kind = 'futureHoverLaneRing';
+  ring.userData.floatSeed = lane.userData.floatSeed + 0.5;
+  ring.userData.baseY = hoverConfig.y - 1.4;
+  ring.userData.baseOpacity = hoverConfig.ringOpacity;
+  laneGroup.add(ring);
+
+  return laneGroup;
+}
+
+function createHologramBillboard(seed, z, side, sideX, futureConfig) {
+  const holoConfig = futureConfig.hologram;
+  const color = getArrayColor(holoConfig.colors, seed, 0x44d8ff);
+  const panel = new THREE.Mesh(
+    new THREE.PlaneGeometry(holoConfig.width, holoConfig.height),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: holoConfig.baseOpacity,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    })
+  );
+
+  panel.position.set(side * (sideX - holoConfig.xInset), holoConfig.y, z);
+  panel.rotation.y = side < 0 ? Math.PI * 0.16 : -Math.PI * 0.16;
+  panel.userData.kind = 'futureHologram';
+  panel.userData.pulseSeed = seed * 0.27;
+  panel.userData.baseOpacity = holoConfig.baseOpacity;
+  return panel;
+}
+
+function createTrafficStream(seed, z, halfSpan, futureConfig) {
+  const trafficConfig = futureConfig.traffic;
+  const color = getArrayColor(trafficConfig.colors, seed, 0x66f0ff);
+  const trail = new THREE.Mesh(
+    new THREE.BoxGeometry(trafficConfig.trailLength, 0.25, 0.8),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: trafficConfig.opacity,
+      depthWrite: false
+    })
+  );
+
+  trail.position.set(-halfSpan + (seed % 7) * (halfSpan / 3.5), trafficConfig.y, z);
+  trail.userData.kind = 'futureTraffic';
+  trail.userData.speed = trafficConfig.speed * (0.7 + pseudoRandom(seed * 0.51) * 0.9);
+  trail.userData.halfSpan = halfSpan;
+  trail.userData.trailLength = trafficConfig.trailLength;
+  return trail;
 }
 
 function clearBackground() {
@@ -1092,23 +1220,39 @@ function createFutureCityScenery() {
   const group = new THREE.Group();
 
   const metrics = getBackgroundMetrics();
-  const sideX = Math.max(140, metrics.width * 0.34);
+  const futureConfig = CONFIG.sceneRefactor.futureCity;
+  const sceneryConfig = futureConfig.scenery;
 
-  const laneSpacing = 170;
-  const laneCount = Math.max(14, Math.ceil((metrics.depth + 1000) / laneSpacing));
+  const sideX = Math.max(sceneryConfig.sideXMin, metrics.width * sceneryConfig.sideXWidthMultiplier);
+
+  const laneSpacing = sceneryConfig.laneSpacing;
+  const laneCount = Math.max(
+    sceneryConfig.laneCountMin,
+    Math.ceil((metrics.depth + sceneryConfig.laneDepthPadding) / laneSpacing)
+  );
 
   for (let i = 0; i < laneCount; i++) {
-    const z = 100 + i * laneSpacing;
+    const z = sceneryConfig.laneStartZ + i * laneSpacing;
 
-    group.add(createFutureTower(i * 2, z, -1, sideX, metrics.heightFactor));
-    group.add(createFutureTower(i * 2 + 1, z + 40, 1, sideX, metrics.heightFactor));
+    group.add(createFutureTower(i * 2, z, -1, sideX, metrics.heightFactor, futureConfig));
+    group.add(createFutureTower(i * 2 + 1, z + sceneryConfig.rightTowerZOffset, 1, sideX, metrics.heightFactor, futureConfig));
 
-    if (i % 3 === 0) {
-      group.add(createSkyBridge(z + 30, sideX * 0.92));
+    if (i % sceneryConfig.bridgeEvery === 0) {
+      group.add(createSkyBridge(i, z + sceneryConfig.bridgeZOffset, sideX * 0.92, futureConfig));
     }
 
-    if (i % 2 === 0) {
-      group.add(createHoverLane(z + 10, sideX * 0.55));
+    if (i % sceneryConfig.hoverEvery === 0) {
+      group.add(createHoverLane(i, z + sceneryConfig.hoverZOffset, sideX * 0.55, futureConfig));
+    }
+
+    if (i % sceneryConfig.hologramEvery === 0) {
+      group.add(createHologramBillboard(i, z + 20, -1, sideX, futureConfig));
+      group.add(createHologramBillboard(i + 5, z + 80, 1, sideX, futureConfig));
+    }
+
+    if (i % sceneryConfig.trafficEvery === 0) {
+      group.add(createTrafficStream(i, z + 26, sideX * 0.9, futureConfig));
+      group.add(createTrafficStream(i + 3, z + 34, sideX * 0.9, futureConfig));
     }
   }
 
@@ -1341,21 +1485,92 @@ export function animateBackground() {
     }
 
     if (child.userData.kind === 'futureCity') {
-      const time = performance.now() * 0.003;
+      const futureConfig = CONFIG.sceneRefactor.futureCity;
+      const beaconConfig = futureConfig.beacon;
+      const hoverConfig = futureConfig.hoverLane;
+      const hologramConfig = futureConfig.hologram;
+      const tempo = futureConfig.animation.tempo;
+      const time = performance.now() * 0.003 * tempo;
 
       child.traverse((part) => {
         if (part.userData.kind === 'futureBeacon') {
           const seed = part.userData.blinkSeed || 0;
-          const s = 0.65 + Math.sin(time * 2.4 + seed) * 0.35;
+          const s =
+            beaconConfig.pulseScaleBase +
+            Math.sin(time * beaconConfig.pulseSpeed + seed) * beaconConfig.pulseScaleAmplitude;
           part.scale.setScalar(Math.max(0.6, s));
           if (part.material && 'opacity' in part.material) {
-            part.material.opacity = 0.7 + Math.sin(time * 2.4 + seed) * 0.3;
+            const baseOpacity = part.userData.baseOpacity ?? beaconConfig.baseOpacity;
+            part.material.opacity =
+              baseOpacity +
+              Math.sin(time * beaconConfig.pulseSpeed + seed) * beaconConfig.pulseOpacity;
+          }
+        }
+
+        if (part.userData.kind === 'futureBeaconHalo') {
+          const seed = part.userData.blinkSeed || 0;
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity ?? 0.24;
+            part.material.opacity = baseOpacity + Math.sin(time * beaconConfig.pulseSpeed + seed) * 0.12;
+          }
+        }
+
+        if (part.userData.kind === 'futureRooftopRing') {
+          const seed = part.userData.pulseSeed || 0;
+          part.rotation.z += 0.015;
+          if (part.material && 'emissiveIntensity' in part.material) {
+            part.material.emissiveIntensity =
+              CONFIG.sceneRefactor.futureCity.tower.rooftopRingEmissiveIntensity +
+              Math.sin(time * 2.1 + seed) * 0.35;
+          }
+        }
+
+        if (part.userData.kind === 'futureBridgeStrip') {
+          const seed = part.userData.pulseSeed || 0;
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity ?? 0.52;
+            part.material.opacity = baseOpacity + Math.sin(time * 2.8 + seed) * 0.18;
           }
         }
 
         if (part.userData.kind === 'futureHoverLane') {
           const seed = part.userData.floatSeed || 0;
-          part.position.y = 46 + Math.sin(time + seed) * 0.9;
+          const baseY = part.userData.baseY ?? hoverConfig.y;
+          part.position.y = baseY + Math.sin(time + seed) * hoverConfig.floatAmplitude;
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity ?? hoverConfig.baseOpacity;
+            part.material.opacity = baseOpacity + Math.sin(time * 1.8 + seed) * hoverConfig.pulseOpacity;
+          }
+        }
+
+        if (part.userData.kind === 'futureHoverLaneRing') {
+          const seed = part.userData.floatSeed || 0;
+          const baseY = part.userData.baseY ?? (hoverConfig.y - 1.4);
+          part.position.y = baseY + Math.sin(time * 1.15 + seed) * (hoverConfig.floatAmplitude * 0.8);
+          part.rotation.z += 0.03;
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity ?? hoverConfig.ringOpacity;
+            part.material.opacity = baseOpacity + Math.sin(time * 2.0 + seed) * 0.14;
+          }
+        }
+
+        if (part.userData.kind === 'futureHologram') {
+          const seed = part.userData.pulseSeed || 0;
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity ?? hologramConfig.baseOpacity;
+            part.material.opacity = baseOpacity + Math.sin(time * 1.9 + seed) * hologramConfig.pulseOpacity;
+          }
+          part.position.y += Math.sin(time * 0.8 + seed) * 0.03;
+        }
+
+        if (part.userData.kind === 'futureTraffic') {
+          const speed = part.userData.speed || 0.02;
+          const halfSpan = part.userData.halfSpan || 120;
+          const trailLength = part.userData.trailLength || 10;
+          part.position.x += speed * 60;
+          if (part.position.x > halfSpan + trailLength) {
+            part.position.x = -halfSpan - trailLength;
+          }
         }
       });
     }

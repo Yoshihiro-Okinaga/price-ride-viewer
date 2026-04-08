@@ -699,6 +699,93 @@ export const CONFIG = {
       }
     },
 
+    futureCity: {
+      scenery: {
+        sideXMin: 150,
+        sideXWidthMultiplier: 0.36,
+        laneSpacing: 170,
+        laneCountMin: 16,
+        laneDepthPadding: 1200,
+        laneStartZ: 80,
+        rightTowerZOffset: 40,
+        bridgeEvery: 2,
+        bridgeZOffset: 30,
+        hoverEvery: 1,
+        hoverZOffset: 10,
+        hologramEvery: 2,
+        trafficEvery: 1
+      },
+      tower: {
+        widthBase: 30,
+        widthRandom: 72,
+        depthBase: 24,
+        depthRandom: 52,
+        heightBase: 130,
+        heightRandom: 240,
+        heightFactorMultiplier: 48,
+        xJitter: 120,
+        bodyColor: 0x0f1830,
+        bodyEmissive: 0x142850,
+        bodyEmissiveIntensity: 0.7,
+        crownColor: 0xa9e6ff,
+        crownEmissive: 0x4be0ff,
+        crownEmissiveIntensity: 1.5,
+        windowColors: [0x55dfff, 0xff4fd8, 0x8f78ff],
+        windowOpacity: 0.95,
+        windowSkipThreshold: 0.84,
+        rooftopRingColor: 0x7de8ff,
+        rooftopRingEmissive: 0x44d8ff,
+        rooftopRingEmissiveIntensity: 1.4
+      },
+      beacon: {
+        colors: [0x44d8ff, 0xff4fd8, 0x8f78ff],
+        baseOpacity: 0.9,
+        pulseOpacity: 0.22,
+        pulseScaleBase: 0.8,
+        pulseScaleAmplitude: 0.45,
+        pulseSpeed: 3.0
+      },
+      bridge: {
+        y: 128,
+        beamColor: 0x1a2a4d,
+        beamEmissive: 0x2b66cc,
+        beamEmissiveIntensity: 0.7,
+        railColor: 0x66f0ff,
+        stripColorA: 0x66f0ff,
+        stripColorB: 0xff4fd8,
+        stripOpacity: 0.52
+      },
+      hoverLane: {
+        y: 48,
+        color: 0x66d9ff,
+        baseOpacity: 0.34,
+        pulseOpacity: 0.22,
+        floatAmplitude: 1.2,
+        ringColor: 0x90f0ff,
+        ringOpacity: 0.34
+      },
+      hologram: {
+        width: 28,
+        height: 22,
+        y: 84,
+        xInset: 30,
+        baseOpacity: 0.35,
+        pulseOpacity: 0.2,
+        colors: [0x44d8ff, 0xff4fd8, 0x8f78ff]
+      },
+      traffic: {
+        y: 130,
+        speed: 0.028,
+        lightSize: 1.2,
+        trailLength: 10,
+        opacity: 0.9,
+        colors: [0x66f0ff, 0xff66cc, 0xb08cff]
+      },
+      animation: {
+        tempo: 1.0
+      }
+    },
+
     analysis: {
       panelWidthMin: 1400,
       panelWidthMultiplier: 1.4,
