@@ -1259,6 +1259,390 @@ function createFutureCityScenery() {
   return group;
 }
 
+function createHeavenTempleIsland(seed, z, side, baseX, heightFactor, heavenConfig) {
+  const group = new THREE.Group();
+  const islandConfig = heavenConfig.island;
+  const templeConfig = heavenConfig.temple;
+
+  const radiusTop = islandConfig.radiusTopBase + pseudoRandom(seed + 0.1) * islandConfig.radiusTopRandom;
+  const radiusBottom = islandConfig.radiusBottomBase + pseudoRandom(seed + 0.2) * islandConfig.radiusBottomRandom;
+  const thickness = islandConfig.thicknessBase + pseudoRandom(seed + 0.3) * islandConfig.thicknessRandom;
+  const y = islandConfig.yBase + heightFactor * islandConfig.yHeightFactorMultiplier + pseudoRandom(seed + 0.4) * 12;
+  const x = side * (baseX + pseudoRandom(seed + 0.5) * 100);
+
+  const rock = new THREE.Mesh(
+    new THREE.CylinderGeometry(radiusTop, radiusBottom, thickness, 10),
+    new THREE.MeshStandardMaterial({
+      color: islandConfig.rockColor,
+      emissive: islandConfig.rockEmissive,
+      emissiveIntensity: islandConfig.rockEmissiveIntensity,
+      roughness: 0.85,
+      metalness: 0.1
+    })
+  );
+  rock.position.set(0, y, 0);
+  group.add(rock);
+
+  const topPlate = new THREE.Mesh(
+    new THREE.CylinderGeometry(radiusTop * 0.98, radiusTop * 0.98, 4, 20),
+    new THREE.MeshStandardMaterial({
+      color: islandConfig.topColor,
+      emissive: islandConfig.topEmissive,
+      emissiveIntensity: islandConfig.topEmissiveIntensity,
+      roughness: 0.45,
+      metalness: 0.2
+    })
+  );
+  topPlate.position.set(0, y + thickness * 0.5, 0);
+  group.add(topPlate);
+
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(radiusTop * 0.95, 0.7, 10, 28),
+    new THREE.MeshBasicMaterial({
+      color: islandConfig.rimColor,
+      transparent: true,
+      opacity: islandConfig.rimOpacity,
+      depthWrite: false
+    })
+  );
+  rim.rotation.x = Math.PI * 0.5;
+  rim.position.set(0, y + thickness * 0.5 + 2.2, 0);
+  rim.userData.kind = 'heavenRim';
+  rim.userData.pulseSeed = seed * 0.37;
+  rim.userData.baseOpacity = islandConfig.rimOpacity;
+  group.add(rim);
+
+  const templeBase = new THREE.Mesh(
+    new THREE.BoxGeometry(templeConfig.baseWidth, templeConfig.baseHeight, templeConfig.baseDepth),
+    new THREE.MeshStandardMaterial({
+      color: templeConfig.baseColor,
+      roughness: 0.35,
+      metalness: 0.1
+    })
+  );
+  templeBase.position.set(0, y + thickness * 0.5 + templeConfig.baseHeight * 0.5 + 2.5, 0);
+  group.add(templeBase);
+
+  const columnSpan = templeConfig.baseWidth * 0.72;
+  const columnFrontZ = templeConfig.baseDepth * 0.32;
+  const colY = templeBase.position.y + templeConfig.columnHeightBase * 0.5;
+
+  for (let i = 0; i < templeConfig.columnCount; i++) {
+    const t = templeConfig.columnCount <= 1 ? 0.5 : i / (templeConfig.columnCount - 1);
+    const cx = -columnSpan * 0.5 + t * columnSpan;
+    const colHeight = templeConfig.columnHeightBase + pseudoRandom(seed + i * 0.9) * templeConfig.columnHeightRandom;
+
+    const frontCol = new THREE.Mesh(
+      new THREE.CylinderGeometry(templeConfig.columnRadius, templeConfig.columnRadius, colHeight, 12),
+      new THREE.MeshStandardMaterial({
+        color: templeConfig.columnColor,
+        roughness: 0.32,
+        metalness: 0.12
+      })
+    );
+    frontCol.position.set(cx, templeBase.position.y + colHeight * 0.5, columnFrontZ);
+    group.add(frontCol);
+
+    const backCol = frontCol.clone();
+    backCol.position.z = -columnFrontZ;
+    group.add(backCol);
+  }
+
+  const roofY = templeBase.position.y + templeConfig.columnHeightBase + templeConfig.roofHeight * 0.6;
+  const roof = new THREE.Mesh(
+    new THREE.BoxGeometry(templeConfig.roofWidth, templeConfig.roofHeight, templeConfig.roofDepth),
+    new THREE.MeshStandardMaterial({
+      color: templeConfig.roofColor,
+      emissive: templeConfig.roofEmissive,
+      emissiveIntensity: templeConfig.roofEmissiveIntensity,
+      roughness: 0.4,
+      metalness: 0.18
+    })
+  );
+  roof.position.set(0, roofY, 0);
+  group.add(roof);
+
+  const stairs = new THREE.Mesh(
+    new THREE.BoxGeometry(templeConfig.stairWidth, templeConfig.stairHeight, templeConfig.stairDepth),
+    new THREE.MeshStandardMaterial({ color: templeConfig.stairColor, roughness: 0.5 })
+  );
+  stairs.position.set(0, templeBase.position.y - templeConfig.baseHeight * 0.45, templeConfig.baseDepth * 0.57);
+  group.add(stairs);
+
+  const halo = new THREE.Mesh(
+    new THREE.TorusGeometry(templeConfig.haloRadius, templeConfig.haloTube, 10, 40),
+    new THREE.MeshBasicMaterial({
+      color: templeConfig.haloColor,
+      transparent: true,
+      opacity: templeConfig.haloOpacity,
+      depthWrite: false
+    })
+  );
+  halo.rotation.x = Math.PI * 0.5;
+  halo.position.set(0, roofY + 12, 0);
+  halo.userData.kind = 'heavenHalo';
+  halo.userData.spinSeed = seed * 0.21;
+  halo.userData.baseOpacity = templeConfig.haloOpacity;
+  group.add(halo);
+
+  const orb = new THREE.Mesh(
+    new THREE.SphereGeometry(templeConfig.orbRadius, 14, 14),
+    new THREE.MeshStandardMaterial({
+      color: templeConfig.orbColor,
+      emissive: templeConfig.orbEmissive,
+      emissiveIntensity: templeConfig.orbEmissiveIntensity,
+      transparent: true,
+      opacity: 0.9
+    })
+  );
+  orb.position.set(0, roofY + 10, 0);
+  orb.userData.kind = 'heavenOrb';
+  orb.userData.floatSeed = seed * 0.47;
+  orb.userData.baseY = roofY + 10;
+  orb.userData.baseEmissive = templeConfig.orbEmissiveIntensity;
+  group.add(orb);
+
+  group.position.set(x, 0, z);
+  return group;
+}
+
+function createHeavenBridge(seed, z, span, y, heavenConfig) {
+  const bridgeConfig = heavenConfig.bridge;
+  const bridgeGroup = new THREE.Group();
+
+  const deck = new THREE.Mesh(
+    new THREE.BoxGeometry(span * 2, bridgeConfig.deckHeight, bridgeConfig.deckDepth),
+    new THREE.MeshBasicMaterial({
+      color: bridgeConfig.deckColor,
+      transparent: true,
+      opacity: bridgeConfig.deckOpacity
+    })
+  );
+  deck.position.set(0, y + bridgeConfig.yOffset, z);
+  bridgeGroup.add(deck);
+
+  const railMat = new THREE.MeshBasicMaterial({
+    color: bridgeConfig.railColor,
+    transparent: true,
+    opacity: bridgeConfig.railOpacity
+  });
+
+  const rail1 = new THREE.Mesh(new THREE.BoxGeometry(span * 2, 0.55, 0.9), railMat);
+  rail1.position.set(0, y + bridgeConfig.yOffset + 1.4, z + bridgeConfig.deckDepth * 0.45);
+  rail1.userData.kind = 'heavenBridgeRail';
+  rail1.userData.pulseSeed = seed * 0.18;
+  rail1.userData.baseOpacity = bridgeConfig.railOpacity;
+  bridgeGroup.add(rail1);
+
+  const rail2 = rail1.clone();
+  rail2.position.z = z - bridgeConfig.deckDepth * 0.45;
+  rail2.userData.pulseSeed = seed * 0.18 + 0.8;
+  bridgeGroup.add(rail2);
+
+  return bridgeGroup;
+}
+
+function createHeavenCloud(seed, z, metrics, heavenConfig) {
+  const cloudConfig = heavenConfig.cloud;
+  const width = cloudConfig.widthBase + pseudoRandom(seed + 0.1) * cloudConfig.widthRandom;
+  const height = cloudConfig.heightBase + pseudoRandom(seed + 0.2) * cloudConfig.heightRandom;
+  const xRange = Math.max(260, metrics.width * cloudConfig.xRangeMultiplier);
+  const x = (pseudoRandom(seed + 0.3) * 2 - 1) * xRange;
+  const y = cloudConfig.yBase + pseudoRandom(seed + 0.4) * cloudConfig.yRandom;
+  const opacity = cloudConfig.opacityBase + pseudoRandom(seed + 0.5) * cloudConfig.opacityRandom;
+
+  const cloud = new THREE.Mesh(
+    new THREE.PlaneGeometry(width, height),
+    new THREE.MeshBasicMaterial({
+      color: cloudConfig.color,
+      transparent: true,
+      opacity,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    })
+  );
+
+  cloud.position.set(x, y, z);
+  cloud.rotation.y = pseudoRandom(seed + 0.6) * Math.PI;
+  cloud.userData.kind = 'heavenCloud';
+  cloud.userData.baseX = x;
+  cloud.userData.baseY = y;
+  cloud.userData.floatSeed = seed * 0.39;
+  cloud.userData.driftSpeed = cloudConfig.driftSpeedBase + pseudoRandom(seed + 0.7) * cloudConfig.driftSpeedRandom;
+  cloud.userData.xLimit = xRange;
+  cloud.userData.baseOpacity = opacity;
+
+  return cloud;
+}
+
+function createHeavenAura(seed, z, side, sideX, heavenConfig) {
+  const auraConfig = heavenConfig.aura;
+  const width = auraConfig.widthBase + pseudoRandom(seed + 0.1) * auraConfig.widthRandom;
+  const height = auraConfig.heightBase + pseudoRandom(seed + 0.2) * auraConfig.heightRandom;
+  const color = getArrayColor(auraConfig.colors, seed, 0xfff7d1);
+  const opacity = auraConfig.opacityBase + pseudoRandom(seed + 0.3) * auraConfig.opacityRandom;
+
+  const aura = new THREE.Mesh(
+    new THREE.PlaneGeometry(width, height),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    })
+  );
+
+  const x = side * (sideX - auraConfig.xInset);
+  const y = auraConfig.yBase + pseudoRandom(seed + 0.4) * auraConfig.yRandom;
+
+  aura.position.set(x, y, z);
+  aura.rotation.y = side < 0 ? Math.PI * 0.12 : -Math.PI * 0.12;
+  aura.userData.kind = 'heavenAura';
+  aura.userData.waveSeed = seed * 0.29;
+  aura.userData.baseOpacity = opacity;
+  aura.userData.baseY = y;
+
+  return aura;
+}
+
+function createHeavenSigil(seed, z, side, sideX, islandY, heavenConfig) {
+  const sigilConfig = heavenConfig.sigil;
+  const radius = sigilConfig.radiusBase + pseudoRandom(seed + 0.1) * sigilConfig.radiusRandom;
+  const x = side * (sideX - 18 - pseudoRandom(seed + 0.2) * 30);
+
+  const sigilGroup = new THREE.Group();
+  sigilGroup.position.set(x, islandY + sigilConfig.yOffset, z);
+  sigilGroup.userData.kind = 'heavenSigilGroup';
+  sigilGroup.userData.spinSeed = seed * 0.41;
+
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(radius, sigilConfig.tube, 10, 40),
+    new THREE.MeshBasicMaterial({
+      color: sigilConfig.color,
+      transparent: true,
+      opacity: sigilConfig.opacity,
+      depthWrite: false
+    })
+  );
+  ring.rotation.x = Math.PI * 0.5;
+  ring.userData.kind = 'heavenSigil';
+  ring.userData.baseOpacity = sigilConfig.opacity;
+  sigilGroup.add(ring);
+
+  for (let i = 0; i < sigilConfig.glyphCount; i++) {
+    const angle = (i / sigilConfig.glyphCount) * Math.PI * 2;
+    const glyph = new THREE.Mesh(
+      new THREE.PlaneGeometry(sigilConfig.glyphWidth, sigilConfig.glyphHeight),
+      new THREE.MeshBasicMaterial({
+        color: sigilConfig.color,
+        transparent: true,
+        opacity: sigilConfig.opacity * 0.74,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      })
+    );
+
+    glyph.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+    glyph.lookAt(0, 1, 0);
+    glyph.userData.kind = 'heavenSigilGlyph';
+    glyph.userData.baseOpacity = sigilConfig.opacity * 0.74;
+    glyph.userData.pulseSeed = seed * 0.53 + i * 0.4;
+    sigilGroup.add(glyph);
+  }
+
+  return sigilGroup;
+}
+
+function createHeavenMote(seed, z, metrics, heavenConfig) {
+  const moteConfig = heavenConfig.motes;
+  const size = moteConfig.sizeBase + pseudoRandom(seed + 0.1) * moteConfig.sizeRandom;
+  const xRange = Math.max(280, metrics.width * moteConfig.xRangeMultiplier);
+  const x = (pseudoRandom(seed + 0.2) * 2 - 1) * xRange;
+  const y = moteConfig.yBase + pseudoRandom(seed + 0.3) * moteConfig.yRandom;
+  const color = getArrayColor(moteConfig.colors, seed, 0xfff6cf);
+  const opacity = moteConfig.opacityBase + pseudoRandom(seed + 0.4) * moteConfig.opacityRandom;
+
+  const mote = new THREE.Mesh(
+    new THREE.SphereGeometry(size, 8, 8),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      depthWrite: false
+    })
+  );
+
+  mote.position.set(x, y, z);
+  mote.userData.kind = 'heavenMote';
+  mote.userData.baseOpacity = opacity;
+  mote.userData.seed = seed * 0.67;
+  mote.userData.riseSpeed = 0.08 + pseudoRandom(seed + 0.5) * 0.14;
+  mote.userData.xDrift = (pseudoRandom(seed + 0.6) * 2 - 1) * 0.08;
+  mote.userData.zDrift = (pseudoRandom(seed + 0.7) * 2 - 1) * 0.05;
+  mote.userData.resetBaseY = moteConfig.yBase - 12;
+
+  return mote;
+}
+
+function createHeavenTempleScenery() {
+  const group = new THREE.Group();
+  const metrics = getBackgroundMetrics();
+  const heavenConfig = CONFIG.sceneRefactor.heavenTemple;
+  const sceneryConfig = heavenConfig.scenery;
+
+  const sideX = Math.max(sceneryConfig.sideXMin, metrics.width * sceneryConfig.sideXWidthMultiplier);
+  const laneCount = Math.max(
+    sceneryConfig.laneCountMin,
+    Math.ceil((metrics.depth + sceneryConfig.laneDepthPadding) / sceneryConfig.laneSpacing)
+  );
+
+  for (let i = 0; i < laneCount; i++) {
+    const z = sceneryConfig.laneStartZ + i * sceneryConfig.laneSpacing;
+    const islandY = heavenConfig.island.yBase + metrics.heightFactor * heavenConfig.island.yHeightFactorMultiplier;
+
+    const leftIsland = createHeavenTempleIsland(i * 2, z, -1, sideX, metrics.heightFactor, heavenConfig);
+    const rightIsland = createHeavenTempleIsland(
+      i * 2 + 1,
+      z + sceneryConfig.rightIslandZOffset,
+      1,
+      sideX,
+      metrics.heightFactor,
+      heavenConfig
+    );
+
+    group.add(leftIsland);
+    group.add(rightIsland);
+
+    if (i % sceneryConfig.bridgeEvery === 0) {
+      const bridgeY = CONFIG.sceneRefactor.heavenTemple.island.yBase + metrics.heightFactor * CONFIG.sceneRefactor.heavenTemple.island.yHeightFactorMultiplier;
+      group.add(createHeavenBridge(i, z + sceneryConfig.bridgeZOffset, sideX * heavenConfig.bridge.widthScale, bridgeY, heavenConfig));
+    }
+
+    if (i % sceneryConfig.cloudEvery === 0) {
+      group.add(createHeavenCloud(i * 3 + 1, z + sceneryConfig.cloudZOffset, metrics, heavenConfig));
+      group.add(createHeavenCloud(i * 3 + 2, z + sceneryConfig.cloudZOffset + 60, metrics, heavenConfig));
+    }
+
+    if (i % sceneryConfig.auraEvery === 0) {
+      group.add(createHeavenAura(i * 5 + 1, z + sceneryConfig.auraZOffset, -1, sideX, heavenConfig));
+      group.add(createHeavenAura(i * 5 + 2, z + sceneryConfig.auraZOffset + 46, 1, sideX, heavenConfig));
+    }
+
+    if (i % sceneryConfig.sigilEvery === 0) {
+      group.add(createHeavenSigil(i * 7 + 1, z + sceneryConfig.sigilZOffset, -1, sideX, islandY, heavenConfig));
+      group.add(createHeavenSigil(i * 7 + 2, z + sceneryConfig.sigilZOffset + 70, 1, sideX, islandY, heavenConfig));
+    }
+
+    for (let m = 0; m < sceneryConfig.motesPerLane; m++) {
+      const moteSeed = i * 17 + m * 3 + 1;
+      group.add(createHeavenMote(moteSeed, z + (m - 3) * 10, metrics, heavenConfig));
+    }
+  }
+
+  return group;
+}
+
 export function createBackground() {
   clearBackground();
 
@@ -1301,6 +1685,10 @@ export function createBackground() {
     const city = createFutureCityScenery();
     city.userData.kind = 'futureCity';
     backgroundGroup.add(city);
+  } else if (theme.backgroundKind === 'heavenTemple') {
+    const temple = createHeavenTempleScenery();
+    temple.userData.kind = 'heavenTemple';
+    backgroundGroup.add(temple);
   }
 
   app.scene.add(backgroundGroup);
@@ -1570,6 +1958,136 @@ export function animateBackground() {
           part.position.x += speed * 60;
           if (part.position.x > halfSpan + trailLength) {
             part.position.x = -halfSpan - trailLength;
+          }
+        }
+      });
+    }
+
+    if (child.userData.kind === 'heavenTemple') {
+      const heavenConfig = CONFIG.sceneRefactor.heavenTemple;
+      const animation = heavenConfig.animation;
+      const time = performance.now() * 0.0024 * animation.tempo;
+
+      child.traverse((part) => {
+        if (part.userData.kind === 'heavenHalo') {
+          const seed = part.userData.spinSeed || 0;
+          part.rotation.z += animation.haloSpin;
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity ?? 0.6;
+            part.material.opacity =
+              baseOpacity +
+              Math.sin(time * animation.bannerPulseSpeed + seed) * animation.bannerPulseAmplitude;
+          }
+        }
+
+        if (part.userData.kind === 'heavenRim') {
+          const seed = part.userData.pulseSeed || 0;
+          part.rotation.z -= animation.haloSpin * 0.65;
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity ?? 0.5;
+            part.material.opacity = baseOpacity + Math.sin(time * 1.7 + seed) * 0.16;
+          }
+        }
+
+        if (part.userData.kind === 'heavenOrb') {
+          const seed = part.userData.floatSeed || 0;
+          const baseY = part.userData.baseY || part.position.y;
+          part.position.y = baseY + Math.sin(time * 1.2 + seed) * 1.8;
+          if (part.material && 'emissiveIntensity' in part.material) {
+            const baseEmissive = part.userData.baseEmissive || 1.0;
+            part.material.emissiveIntensity =
+              baseEmissive +
+              Math.sin(time * animation.orbPulseSpeed + seed) * animation.orbPulseAmplitude;
+          }
+        }
+
+        if (part.userData.kind === 'heavenCloud') {
+          const seed = part.userData.floatSeed || 0;
+          const speed = part.userData.driftSpeed || 0.1;
+          const xLimit = part.userData.xLimit || 300;
+          const baseY = part.userData.baseY || part.position.y;
+
+          part.position.x += speed;
+          if (part.position.x > xLimit) {
+            part.position.x = -xLimit;
+          }
+
+          part.position.y =
+            baseY +
+            Math.sin(time * animation.cloudFloatSpeed + seed) * animation.cloudFloatAmplitude;
+
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity || 0.25;
+            part.material.opacity = baseOpacity + Math.sin(time * 1.4 + seed) * 0.08;
+          }
+        }
+
+        if (part.userData.kind === 'heavenBridgeRail') {
+          const seed = part.userData.pulseSeed || 0;
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity || 0.68;
+            part.material.opacity =
+              baseOpacity +
+              Math.sin(time * animation.bannerPulseSpeed + seed) * animation.bannerPulseAmplitude;
+          }
+        }
+
+        if (part.userData.kind === 'heavenAura') {
+          const seed = part.userData.waveSeed || 0;
+          const baseY = part.userData.baseY || part.position.y;
+          part.position.y = baseY + Math.sin(time * animation.auraWaveSpeed + seed) * 1.2;
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity || 0.2;
+            part.material.opacity =
+              baseOpacity +
+              Math.sin(time * (animation.auraWaveSpeed + 0.5) + seed) * animation.auraWaveAmplitude;
+          }
+        }
+
+        if (part.userData.kind === 'heavenSigilGroup') {
+          const seed = part.userData.spinSeed || 0;
+          part.rotation.y += animation.sigilSpin;
+          part.position.y += Math.sin(time * 0.8 + seed) * 0.05;
+        }
+
+        if (part.userData.kind === 'heavenSigil') {
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity || 0.66;
+            part.material.opacity =
+              baseOpacity + Math.sin(time * animation.bannerPulseSpeed) * animation.sigilPulseAmplitude;
+          }
+        }
+
+        if (part.userData.kind === 'heavenSigilGlyph') {
+          const seed = part.userData.pulseSeed || 0;
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity || 0.48;
+            part.material.opacity =
+              baseOpacity + Math.sin(time * 2.3 + seed) * (animation.sigilPulseAmplitude * 0.7);
+          }
+        }
+
+        if (part.userData.kind === 'heavenMote') {
+          const riseSpeed = part.userData.riseSpeed || 0.08;
+          const xDrift = part.userData.xDrift || 0;
+          const zDrift = part.userData.zDrift || 0;
+          const seed = part.userData.seed || 0;
+          const resetBaseY = part.userData.resetBaseY || 60;
+          const resetY = animation.moteRiseResetY;
+
+          part.position.y += riseSpeed * animation.moteRiseSpeed;
+          part.position.x += xDrift;
+          part.position.z += zDrift;
+
+          if (part.position.y > resetY) {
+            part.position.y = resetBaseY + Math.sin(time + seed) * 8;
+          }
+
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity || 0.6;
+            part.material.opacity =
+              baseOpacity +
+              Math.sin(time * animation.moteTwinkleSpeed + seed) * animation.moteTwinkleAmplitude;
           }
         }
       });

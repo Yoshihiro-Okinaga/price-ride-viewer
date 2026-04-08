@@ -67,7 +67,8 @@ export const CONFIG = {
       { value: 'amusement', label: '明るい遊園地' },
       { value: 'analysis', label: '解析モード' },
       { value: 'cityNight', label: '都会の夜景' },
-      { value: 'futureCity', label: '未来都市' }
+      { value: 'futureCity', label: '未来都市' },
+      { value: 'heavenTemple', label: '天界神殿' }
     ],
 
     csvOptions: [
@@ -407,6 +408,30 @@ export const CONFIG = {
         backgroundKind: 'futureCity',
         guideColor: 0x66d9ff,
         guideOpacity: 0.30
+      },
+
+      heavenTemple: {
+        sceneBackground: 0xdff2ff,
+        fogColor: 0xf4fbff,
+        fogDensity: 0.00011,
+        ground: {
+          opacity: 0.95,
+          backgroundColor: '#f2f8ff',
+          gradTop: 'rgba(255,255,255,0.28)',
+          gradMid: 'rgba(255,255,255,0.06)',
+          gradBottom: 'rgba(200,220,255,0.16)',
+          gridColor: 'rgba(150,180,230,0.12)',
+          glowDotColor: 'rgba(255,255,255,0.16)',
+          cells: 12
+        },
+        lighting: {
+          directional: { color: 0xfffcf1, intensity: 1.20 },
+          ambient: { color: 0xf8fbff, intensity: 1.12 },
+          point: { color: 0xffe6a8, intensity: 1.05 }
+        },
+        backgroundKind: 'heavenTemple',
+        guideColor: 0x7aa7ff,
+        guideOpacity: 0.22
       },
     },
 
@@ -783,6 +808,149 @@ export const CONFIG = {
       },
       animation: {
         tempo: 1.0
+      }
+    },
+
+    heavenTemple: {
+      scenery: {
+        sideXMin: 160,
+        sideXWidthMultiplier: 0.35,
+        laneSpacing: 260,
+        laneCountMin: 10,
+        laneDepthPadding: 900,
+        laneStartZ: 150,
+        rightIslandZOffset: 110,
+        bridgeEvery: 2,
+        bridgeZOffset: 70,
+        cloudEvery: 1,
+        cloudZOffset: 40,
+        auraEvery: 1,
+        auraZOffset: 20,
+        sigilEvery: 2,
+        sigilZOffset: 34,
+        motesPerLane: 8
+      },
+      island: {
+        radiusTopBase: 34,
+        radiusTopRandom: 18,
+        radiusBottomBase: 58,
+        radiusBottomRandom: 28,
+        thicknessBase: 46,
+        thicknessRandom: 36,
+        yBase: 58,
+        yHeightFactorMultiplier: 18,
+        topColor: 0xf4f8ff,
+        topEmissive: 0x5f7fb8,
+        topEmissiveIntensity: 0.32,
+        rockColor: 0xc7d4ef,
+        rockEmissive: 0x2a3557,
+        rockEmissiveIntensity: 0.18,
+        rimColor: 0xfff0b8,
+        rimOpacity: 0.52
+      },
+      temple: {
+        baseWidth: 56,
+        baseDepth: 42,
+        baseHeight: 8,
+        baseColor: 0xf4f0e5,
+        columnCount: 6,
+        columnRadius: 2.2,
+        columnHeightBase: 24,
+        columnHeightRandom: 10,
+        columnColor: 0xfff8eb,
+        roofWidth: 62,
+        roofDepth: 46,
+        roofHeight: 7,
+        roofColor: 0xf9eac0,
+        roofEmissive: 0xffe4a3,
+        roofEmissiveIntensity: 0.45,
+        stairWidth: 38,
+        stairDepth: 18,
+        stairHeight: 3,
+        stairColor: 0xe8edf8,
+        haloRadius: 14,
+        haloTube: 0.75,
+        haloColor: 0xfff0b0,
+        haloOpacity: 0.60,
+        orbRadius: 3.2,
+        orbColor: 0xfff6cc,
+        orbEmissive: 0xffdd88,
+        orbEmissiveIntensity: 1.1
+      },
+      bridge: {
+        widthScale: 0.72,
+        yOffset: 18,
+        deckHeight: 1.4,
+        deckDepth: 12,
+        deckColor: 0xfaf1cf,
+        deckOpacity: 0.84,
+        railColor: 0xffe3a0,
+        railOpacity: 0.68
+      },
+      cloud: {
+        widthBase: 130,
+        widthRandom: 120,
+        heightBase: 36,
+        heightRandom: 40,
+        yBase: 90,
+        yRandom: 80,
+        xRangeMultiplier: 0.9,
+        color: 0xffffff,
+        opacityBase: 0.24,
+        opacityRandom: 0.18,
+        driftSpeedBase: 0.11,
+        driftSpeedRandom: 0.16
+      },
+      aura: {
+        widthBase: 110,
+        widthRandom: 90,
+        heightBase: 150,
+        heightRandom: 120,
+        yBase: 110,
+        yRandom: 70,
+        xInset: 34,
+        colors: [0xfff7d1, 0xcce8ff, 0xe9d7ff],
+        opacityBase: 0.18,
+        opacityRandom: 0.14
+      },
+      sigil: {
+        radiusBase: 8,
+        radiusRandom: 8,
+        tube: 0.32,
+        yOffset: 8,
+        color: 0xffe9a8,
+        opacity: 0.66,
+        glyphWidth: 0.9,
+        glyphHeight: 3.2,
+        glyphCount: 10
+      },
+      motes: {
+        sizeBase: 0.9,
+        sizeRandom: 1.0,
+        yBase: 72,
+        yRandom: 80,
+        xRangeMultiplier: 0.95,
+        colors: [0xfff6cf, 0xd6f2ff, 0xf0ddff],
+        opacityBase: 0.55,
+        opacityRandom: 0.35
+      },
+      animation: {
+        tempo: 1.0,
+        haloSpin: 0.010,
+        orbPulseSpeed: 2.1,
+        orbPulseAmplitude: 0.24,
+        cloudFloatAmplitude: 1.6,
+        cloudFloatSpeed: 0.75,
+        bannerPulseSpeed: 1.9,
+        bannerPulseAmplitude: 0.20,
+        auraWaveSpeed: 1.3,
+        auraWaveAmplitude: 0.22,
+        sigilSpin: 0.018,
+        sigilPulseAmplitude: 0.22,
+        moteRiseSpeed: 0.20,
+        moteRiseResetY: 190,
+        moteTwinkleSpeed: 2.2,
+        moteTwinkleAmplitude: 0.20
       }
     },
 
