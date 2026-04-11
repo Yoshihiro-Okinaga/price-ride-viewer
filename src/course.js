@@ -17,7 +17,13 @@ import {
   getDynamicGroundSize
 } from './scene.js';
 
+/**
+ * テーマ値に対応する表示名を返します。
+ * @param {*} theme テーマ識別子です。
+ * @returns {*} テーマ表示名です。
+ */
 function getThemeLabel(theme) {
+  // この関数の主要処理をここから実行します。
   switch (theme) {
     case 'amusement':
       return '明るい遊園地';
@@ -30,7 +36,13 @@ function getThemeLabel(theme) {
   }
 }
 
+/**
+ * ポイント配列内の最大Y値を取得します。
+ * @param {*} points コース点配列です。
+ * @returns {*} 最大Y値です。
+ */
 function getPointMaxY(points) {
+  // この関数の主要処理をここから実行します。
   let maxY = 0;
 
   for (const point of points) {
@@ -42,7 +54,16 @@ function getPointMaxY(points) {
   return maxY;
 }
 
+/**
+ * 指定位置に価格ラベルを追加します。
+ * @param {*} price 価格です。
+ * @param {*} point 対象ポイントです。
+ * @param {*} buildSettings ビルド設定です。
+ * @param {*} labelY ラベルのY方向オフセットです。
+ * @returns {*} なし。
+ */
 function addPriceLabel(price, point, buildSettings, labelY) {
+  // この関数の主要処理をここから実行します。
   const priceY = getPosYByPrice(
     price,
     app.maxClose,
@@ -64,7 +85,12 @@ function addPriceLabel(price, point, buildSettings, labelY) {
   app.courseGroup.add(label);
 }
 
+/**
+ * 既存コース表示を破棄して初期化します。
+ * @returns {*} なし。
+ */
 export function resetCourseGroup() {
+  // この関数の主要処理をここから実行します。
   if (app.courseGroup) {
     disposeObject3D(app.courseGroup);
     app.scene.remove(app.courseGroup);
@@ -79,7 +105,13 @@ export function resetCourseGroup() {
   app.lastBuildInfo = null;
 }
 
+/**
+ * ポイント列から滑らかな曲線を生成します。
+ * @param {*} points コース点配列です。
+ * @returns {*} 生成した曲線です。
+ */
 export function buildSmoothCurve(points) {
+  // この関数の主要処理をここから実行します。
   if (points.length < 2) {
     throw new Error('曲線を作るための点が不足しています。');
   }
@@ -92,7 +124,18 @@ export function buildSmoothCurve(points) {
   );
 }
 
+/**
+ * キャンバス上に角丸矩形を描画します。
+ * @param {*} ctx 描画対象のキャンバスコンテキストです。
+ * @param {*} x X座標です。
+ * @param {*} y Y座標です。
+ * @param {*} w 幅です。
+ * @param {*} h 高さです。
+ * @param {*} r 角丸半径です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 export function createRoundedRect(ctx, x, y, w, h, r) {
+  // この関数の主要処理をここから実行します。
   const radius = Math.min(r, w / 2, h / 2);
 
   ctx.beginPath();
@@ -108,7 +151,13 @@ export function createRoundedRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+/**
+ * テキスト表示用スプライトを生成します。
+ * @param {*} text 表示テキストです。
+ * @returns {*} 生成したオブジェクトです。
+ */
 export function createTextSprite(text) {
+  // この関数の主要処理をここから実行します。
   const spriteConfig = CONFIG.label.sprite;
   const inset = CONFIG.course.spriteFrameInset;
 
@@ -169,7 +218,16 @@ export function createTextSprite(text) {
   return sprite;
 }
 
+/**
+ * 月次の節目ラベルをコース上に追加します。
+ * @param {*} points コース点配列です。
+ * @param {*} prices 価格配列です。
+ * @param {*} rows 価格データ行配列です。
+ * @param {*} buildSettings ビルド設定です。
+ * @returns {*} なし。
+ */
 export function addMonthlyLabels(points, prices, rows, buildSettings) {
+  // この関数の主要処理をここから実行します。
   if (!points.length || !rows.length) return;
 
   const monthlyLabelConfig = CONFIG.course.monthlyLabel;
@@ -211,7 +269,13 @@ export function addMonthlyLabels(points, prices, rows, buildSettings) {
   }
 }
 
+/**
+ * コースに沿ったレール形状を追加します。
+ * @param {*} curve 対象の曲線です。
+ * @returns {*} なし。
+ */
 export function addRails(curve) {
+  // この関数の主要処理をここから実行します。
   const railConfig = CONFIG.rail;
   const sleeperConfig = CONFIG.sleeper;
 
@@ -356,15 +420,35 @@ export function addRails(curve) {
   }
 }
 
+/**
+ * 曲線からコース表示用メッシュ一式を構築します。
+ * @param {*} curve 対象の曲線です。
+ * @returns {*} なし。
+ */
 export function buildCourseMeshes(curve) {
+  // この関数の主要処理をここから実行します。
   addRails(curve);
 }
 
+/**
+ * 値を指定範囲に収めます。
+ * @param {*} value 対象の値です。
+ * @param {*} min 最小値です。
+ * @param {*} max 最大値です。
+ * @returns {*} 範囲内に収めた値です。
+ */
 function clamp(value, min, max) {
+  // この関数の主要処理をここから実行します。
   return Math.min(max, Math.max(min, value));
 }
 
+/**
+ * 見やすい値に丸め込みます。
+ * @param {*} value 対象の値です。
+ * @returns {*} 丸めた値です。
+ */
 function roundNice(value) {
+  // この関数の主要処理をここから実行します。
   const candidates = CONFIG.course.autoBuild.roundNiceCandidates;
 
   if (!Number.isFinite(value) || value <= 0) {
@@ -389,7 +473,13 @@ function roundNice(value) {
   return best * scale;
 }
 
+/**
+ * 入力データから自動調整パラメータを計算します。
+ * @param {*} rows 価格データ行配列です。
+ * @returns {*} 自動調整パラメータです。
+ */
 export function calcAutoBuildParams(rows) {
+  // この関数の主要処理をここから実行します。
   if (!rows || rows.length < 2) {
     throw new Error('自動調整するための有効データが不足しています。');
   }
@@ -431,12 +521,23 @@ export function calcAutoBuildParams(rows) {
   };
 }
 
+/**
+ * 自動調整パラメータをUIへ反映します。
+ * @param {*} autoParams 自動調整パラメータです。
+ * @returns {*} なし。
+ */
 export function applyAutoBuildParamsToUI(autoParams) {
+  // この関数の主要処理をここから実行します。
   ui.heightScaleInput.value = String(autoParams.heightScale);
   ui.zStepInput.value = String(autoParams.zStep);
 }
 
+/**
+ * 現在入力内容をもとに自動調整値をプレビューします。
+ * @returns {*} Promise<void> です。
+ */
 export async function previewAutoBuildParamsFromCurrentInput() {
+  // この関数の主要処理をここから実行します。
   const startDateText = ui.startDateInput.value.trim();
   if (!startDateText) return;
   if (!ui.csvSelect.value) return;
@@ -451,7 +552,12 @@ export async function previewAutoBuildParamsFromCurrentInput() {
   applyAutoBuildParamsToUI(autoParams);
 }
 
+/**
+ * UI入力をもとにコースを構築します。
+ * @returns {*} Promise<void> です。
+ */
 export async function buildCourseFromUI() {
+  // この関数の主要処理をここから実行します。
   resetCourseGroup();
 
   const buildSettings = getBuildSettingsFromUI();

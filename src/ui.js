@@ -41,26 +41,53 @@ export const ui = {
 
 export let isUiVisible = true;
 
+/**
+ * UI表示用テキスト設定を取得します。
+ * @returns {*} UI表示テキスト設定です。
+ */
 function getUiText() {
+  // この関数の主要処理をここから実行します。
   return CONFIG.ui.displayText;
 }
 
+/**
+ * getValidationMessage の処理を行います。
+ * @returns {*} 戻り値です。
+ */
 function getValidationMessage() {
+  // この関数の主要処理をここから実行します。
   return CONFIG.ui.validationMessage;
 }
 
+/**
+ * getStatusFormat の処理を行います。
+ * @returns {*} 戻り値です。
+ */
 function getStatusFormat() {
+  // この関数の主要処理をここから実行します。
   return CONFIG.ui.statusFormat;
 }
 
+/**
+ * select要素用のoption要素を生成します。
+ * @param {*} value 対象の値です。
+ * @param {*} label 引数です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createOption(value, label) {
+  // この関数の主要処理をここから実行します。
   const option = document.createElement('option');
   option.value = value;
   option.textContent = label;
   return option;
 }
 
+/**
+ * CSV選択肢をDOMへ反映します。
+ * @returns {*} なし。
+ */
 function populateCsvOptions() {
+  // この関数の主要処理をここから実行します。
   const text = getUiText();
   ui.csvSelect.innerHTML = '';
 
@@ -78,7 +105,12 @@ function populateCsvOptions() {
   }
 }
 
+/**
+ * テーマ選択肢をDOMへ反映します。
+ * @returns {*} なし。
+ */
 function populateThemeOptions() {
+  // この関数の主要処理をここから実行します。
   ui.themeSelect.innerHTML = '';
 
   for (const item of CONFIG.ui.themeOptions) {
@@ -86,7 +118,12 @@ function populateThemeOptions() {
   }
 }
 
+/**
+ * 設定値をもとにUI文言と初期状態をDOMへ反映します。
+ * @returns {*} なし。
+ */
 export function applyUiConfigToDom() {
+  // この関数の主要処理をここから実行します。
   const text = getUiText();
   const initial = CONFIG.ui.initialValues;
 
@@ -136,11 +173,23 @@ export function applyUiConfigToDom() {
   ui.showHeightGuidesInput.checked = initial.showHeightGuides;
 }
 
+/**
+ * ステータス表示を更新します。
+ * @param {*} text 表示テキストです。
+ * @returns {*} なし。
+ */
 export function setStatus(text) {
+  // この関数の主要処理をここから実行します。
   ui.statusEl.textContent = text;
 }
 
+/**
+ * UIの表示状態を切り替えます。
+ * @param {*} visible 表示する場合は true です。
+ * @returns {*} なし。
+ */
 export function setUiVisible(visible) {
+  // この関数の主要処理をここから実行します。
   const text = getUiText();
 
   ui.panel.style.display = visible ? 'block' : 'none';
@@ -148,11 +197,21 @@ export function setUiVisible(visible) {
   isUiVisible = visible;
 }
 
+/**
+ * UIの表示状態をトグルします。
+ * @returns {*} なし。
+ */
 export function toggleUiVisible() {
+  // この関数の主要処理をここから実行します。
   setUiVisible(!isUiVisible);
 }
 
+/**
+ * UI入力値からビルド設定を読み取ります。
+ * @returns {*} UIから読み取ったビルド設定です。
+ */
 export function getBuildSettingsFromUI() {
+  // この関数の主要処理をここから実行します。
   const validation = getValidationMessage();
 
   const settings = {
@@ -181,7 +240,12 @@ export function getBuildSettingsFromUI() {
   return settings;
 }
 
+/**
+ * UI入力値から実行時設定を反映します。
+ * @returns {*} 反映後の実行時設定です。
+ */
 export function applyRuntimeSettingsFromUI() {
+  // この関数の主要処理をここから実行します。
   const rideSpeed = Number(ui.rideSpeedInput.value);
   const lookAhead = Number(ui.lookAheadInput.value);
 
@@ -194,12 +258,22 @@ export function applyRuntimeSettingsFromUI() {
   }
 }
 
+/**
+ * UIの値をアプリ状態へ同期します。
+ * @returns {*} なし。
+ */
 export function syncStateFromUI() {
+  // この関数の主要処理をここから実行します。
   app.buildSettings = getBuildSettingsFromUI();
   applyRuntimeSettingsFromUI();
 }
 
+/**
+ * 現在の状態に基づいてステータス表示を組み立てます。
+ * @returns {*} なし。
+ */
 export function updateStatus() {
+  // この関数の主要処理をここから実行します。
   const info = app.lastBuildInfo;
   const runtime = app.runtimeSettings;
   const text = getUiText();

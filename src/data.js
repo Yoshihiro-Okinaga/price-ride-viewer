@@ -1,7 +1,13 @@
 import * as THREE from 'https://unpkg.com/three@0.183.0/build/three.module.js';
 import { parseDateLocal, getPosYByPrice } from './utils.js';
 
+/**
+ * CSVテキストを価格データ配列へ変換します。
+ * @param {*} text 表示テキストです。
+ * @returns {*} パース済みの行配列です。
+ */
 export function parseCSV(text) {
+  // この関数の主要処理をここから実行します。
   const lines = text
     .split(/\r?\n/)
     .map(line => line.trim())
@@ -42,7 +48,14 @@ export function parseCSV(text) {
   return rows;
 }
 
+/**
+ * 開始日以降の行だけを抽出します。
+ * @param {*} rows 価格データ行配列です。
+ * @param {*} startDateText 開始日文字列です.
+ * @returns {*} フィルタ後の行配列です。
+ */
 export function filterRowsByStartDate(rows, startDateText) {
+  // この関数の主要処理をここから実行します。
   const startDate = parseDateLocal(startDateText);
 
   if (Number.isNaN(startDate.getTime())) {
@@ -52,7 +65,14 @@ export function filterRowsByStartDate(rows, startDateText) {
   return rows.filter(row => row.date >= startDate);
 }
 
+/**
+ * 価格データからコース点列を生成します。
+ * @param {*} rows 価格データ行配列です。
+ * @param {*} buildSettings ビルド設定です。
+ * @returns {*} コース生成に必要な点列情報です。
+ */
 export function buildCoursePoints(rows, buildSettings) {
+  // この関数の主要処理をここから実行します。
   if (rows.length < 2) {
     throw new Error('開始日以降の有効データが少なすぎます。');
   }
@@ -81,7 +101,13 @@ export function buildCoursePoints(rows, buildSettings) {
   return { points, prices, baseClose, minClose, maxClose };
 }
 
+/**
+ * URLからCSVテキストを取得します。
+ * @param {*} url CSV取得先URLです。
+ * @returns {*} 取得したCSVテキストです。
+ */
 export async function readCsvTextFromUrl(url) {
+  // この関数の主要処理をここから実行します。
   if (!url) {
     throw new Error('CSVファイルのURLが指定されていません。');
   }

@@ -825,7 +825,9 @@ export const CONFIG = {
         cloudEvery: 1,
         cloudZOffset: 40,
         auroraEvery: 1,
-        moteEvery: 1
+        moteEvery: 1,
+        roadsideEvery: 1,
+        roadsideZOffset: 30
       },
       island: {
         radiusTopBase: 34,
@@ -896,6 +898,35 @@ export const CONFIG = {
         railColor: 0xffe3a0,
         railOpacity: 0.68
       },
+      roadside: {
+        xMultiplier: 0.26,
+        xMin: 64,
+        obeliskHeightBase: 26,
+        obeliskHeightRandom: 26,
+        obeliskRadiusTop: 2.0,
+        obeliskRadiusBottom: 3.8,
+        obeliskColor: 0xf7f1de,
+        obeliskEmissive: 0xffe4a6,
+        obeliskEmissiveIntensity: 0.45,
+        wingWidth: 16,
+        wingHeight: 18,
+        wingDepth: 2,
+        wingColor: 0xe6edff,
+        wingEmissive: 0xd6c6ff,
+        wingEmissiveIntensity: 0.38,
+        crownColor: 0xffe7b4,
+        crownEmissive: 0xffd788,
+        crownEmissiveIntensity: 1.0,
+        haloRadius: 5.2,
+        haloTube: 0.28,
+        haloColor: 0xfff0be,
+        haloOpacity: 0.62,
+        bannerWidth: 7,
+        bannerHeight: 18,
+        bannerColorA: 0xfff0c2,
+        bannerColorB: 0xe9dbff,
+        bannerOpacity: 0.38
+      },
       cloud: {
         widthBase: 130,
         widthRandom: 120,
@@ -952,7 +983,9 @@ export const CONFIG = {
         veilPulseSpeed: 1.5,
         veilPulseAmplitude: 0.10,
         moteTwinkleSpeed: 1.8,
-        moteTwinkleAmplitude: 0.22
+        moteTwinkleAmplitude: 0.22,
+        roadsidePulseSpeed: 2.2,
+        roadsidePulseAmplitude: 0.22
       }
     },
 

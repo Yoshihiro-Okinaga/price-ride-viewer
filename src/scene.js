@@ -4,20 +4,46 @@ import { CONFIG } from './config.js';
 import { app } from './state.js';
 import { disposeObject3D, pseudoRandom } from './utils.js';
 
+/**
+ * 現在のビルド設定に対応するテーマ設定を取得します。
+ * @returns {*} 現在有効なテーマ設定です。
+ */
 function getCurrentTheme() {
+  // この関数の主要処理をここから実行します。
   return CONFIG.sceneRefactor.themePresets[app.buildSettings.theme]
     || CONFIG.sceneRefactor.themePresets.space;
 }
 
+/**
+ * 値を指定範囲に収めます。
+ * @param {*} value 対象の値です。
+ * @param {*} min 最小値です。
+ * @param {*} max 最大値です。
+ * @returns {*} 範囲内に収めた値です。
+ */
 function clamp(value, min, max) {
+  // この関数の主要処理をここから実行します。
   return Math.min(max, Math.max(min, value));
 }
 
+/**
+ * 配列から循環参照で色を取得します。
+ * @param {*} colors 色配列です。
+ * @param {*} index 対象インデックスです。
+ * @param {*} fallback 代替色です。
+ * @returns {*} 選択された色です。
+ */
 function getArrayColor(colors, index, fallback) {
+  // この関数の主要処理をここから実行します。
   return colors[index % colors.length] ?? fallback;
 }
 
+/**
+ * Three.js の基本シーン要素を生成して状態に保持します。
+ * @returns {*} なし。
+ */
 export function createSceneObjects() {
+  // この関数の主要処理をここから実行します。
   const theme = getCurrentTheme();
 
   const scene = new THREE.Scene();
@@ -91,7 +117,12 @@ export function createSceneObjects() {
   });
 }
 
+/**
+ * 現在テーマに応じた地面テクスチャ設定を取得します。
+ * @returns {*} 地面テクスチャ設定です。
+ */
 function getGroundTextureConfig() {
+  // この関数の主要処理をここから実行します。
   const theme = getCurrentTheme();
   return {
     ...CONFIG.ground.texture,
@@ -99,7 +130,12 @@ function getGroundTextureConfig() {
   };
 }
 
+/**
+ * 現在のコース状況に応じた地面サイズ指標を計算します。
+ * @returns {*} 地面計算用の指標です。
+ */
 function getGroundMetrics() {
+  // この関数の主要処理をここから実行します。
   const points = app.coursePoints || [];
   const metricsConfig = CONFIG.sceneRefactor.metrics;
 
@@ -121,7 +157,12 @@ function getGroundMetrics() {
   return { maxY, lastZ };
 }
 
+/**
+ * 現在の表示内容に応じた地面サイズを返します。
+ * @returns {*} 動的に計算した地面サイズです。
+ */
 export function getDynamicGroundSize() {
+  // この関数の主要処理をここから実行します。
   const { maxY, lastZ } = getGroundMetrics();
   const groundSizingConfig = CONFIG.sceneRefactor.groundSizing;
 
@@ -141,7 +182,12 @@ export function getDynamicGroundSize() {
   return { width, depth };
 }
 
+/**
+ * 背景生成に使う寸法指標を計算します。
+ * @returns {*} 背景生成用の指標です。
+ */
 function getBackgroundMetrics() {
+  // この関数の主要処理をここから実行します。
   const { maxY, lastZ } = getGroundMetrics();
   const groundSize = getDynamicGroundSize();
   const metricsConfig = CONFIG.sceneRefactor.metrics;
@@ -164,7 +210,12 @@ function getBackgroundMetrics() {
   };
 }
 
+/**
+ * 地面用のキャンバステクスチャを生成します。
+ * @returns {*} 生成した CanvasTexture です。
+ */
 function createGroundTexture() {
+  // この関数の主要処理をここから実行します。
   const textureConfig = getGroundTextureConfig();
   const repeatConfig = CONFIG.sceneRefactor.groundTextureRepeat;
   const size = textureConfig.size;
@@ -239,7 +290,12 @@ function createGroundTexture() {
   return texture;
 }
 
+/**
+ * 地面メッシュを生成してシーンに配置します。
+ * @returns {*} なし。
+ */
 export function createGround() {
+  // この関数の主要処理をここから実行します。
   const texture = createGroundTexture();
   const theme = getCurrentTheme();
   const groundSize = getDynamicGroundSize();
@@ -265,7 +321,12 @@ export function createGround() {
   app.ground = ground;
 }
 
+/**
+ * 現在設定に合わせて地面を再生成します。
+ * @returns {*} なし。
+ */
 export function rebuildGround() {
+  // この関数の主要処理をここから実行します。
   if (app.ground) {
     disposeObject3D(app.ground);
     app.scene.remove(app.ground);
@@ -274,7 +335,12 @@ export function rebuildGround() {
   createGround();
 }
 
+/**
+ * 星空のパーティクルを生成します。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createStars() {
+  // この関数の主要処理をここから実行します。
   const starConfig = CONFIG.background.stars;
   const refactor = CONFIG.sceneRefactor.stars;
   const metrics = getBackgroundMetrics();
@@ -320,7 +386,12 @@ function createStars() {
   return new THREE.Points(geo, mat);
 }
 
+/**
+ * 宇宙背景用の帯状オブジェクトを生成します。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createNebulaBands() {
+  // この関数の主要処理をここから実行します。
   const metrics = getBackgroundMetrics();
   const refactor = CONFIG.sceneRefactor.nebulaBands;
   const group = new THREE.Group();
@@ -373,7 +444,12 @@ function createNebulaBands() {
   return group;
 }
 
+/**
+ * 宇宙背景用の発光オーブを生成します。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createSpaceOrbs() {
+  // この関数の主要処理をここから実行します。
   const metrics = getBackgroundMetrics();
   const refactor = CONFIG.sceneRefactor.spaceOrbs;
   const group = new THREE.Group();
@@ -409,7 +485,17 @@ function createSpaceOrbs() {
   return group;
 }
 
+/**
+ * リング付き惑星オブジェクトを生成します。
+ * @param {*} index 対象インデックスです。
+ * @param {*} z Z座標です。
+ * @param {*} x X座標です。
+ * @param {*} y Y座標です。
+ * @param {*} scale 引数です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createRingPlanet(index, z, x, y, scale) {
+  // この関数の主要処理をここから実行します。
   const refactor = CONFIG.sceneRefactor.spacePlanets;
   const group = new THREE.Group();
 
@@ -450,7 +536,12 @@ function createRingPlanet(index, z, x, y, scale) {
   return group;
 }
 
+/**
+ * 宇宙背景用の惑星群を生成します。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createSpacePlanets() {
+  // この関数の主要処理をここから実行します。
   const metrics = getBackgroundMetrics();
   const refactor = CONFIG.sceneRefactor.spacePlanets;
   const group = new THREE.Group();
@@ -482,7 +573,12 @@ function createSpacePlanets() {
   return group;
 }
 
+/**
+ * 結晶クラスターを生成します。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createCrystalCluster() {
+  // この関数の主要処理をここから実行します。
   const metrics = getBackgroundMetrics();
   const refactor = CONFIG.sceneRefactor.crystals;
   const group = new THREE.Group();
@@ -525,7 +621,17 @@ function createCrystalCluster() {
   return group;
 }
 
+/**
+ * 遊園地テーマの照明ポールを生成します。
+ * @param {*} index 対象インデックスです。
+ * @param {*} side 左右の配置識別子です。
+ * @param {*} z Z座標です。
+ * @param {*} xOffset X方向オフセットです。
+ * @param {*} heightFactor 高さに応じた倍率です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createAmusementLightPole(index, side, z, xOffset, heightFactor) {
+  // この関数の主要処理をここから実行します。
   const refactor = CONFIG.sceneRefactor.amusement.lightPole;
   const poleGroup = new THREE.Group();
 
@@ -588,7 +694,17 @@ function createAmusementLightPole(index, side, z, xOffset, heightFactor) {
   return poleGroup;
 }
 
+/**
+ * 遊園地テーマのテントを生成します。
+ * @param {*} index 対象インデックスです。
+ * @param {*} side 左右の配置識別子です。
+ * @param {*} z Z座標です。
+ * @param {*} xOffset X方向オフセットです。
+ * @param {*} heightFactor 高さに応じた倍率です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createTent(index, side, z, xOffset, heightFactor) {
+  // この関数の主要処理をここから実行します。
   const refactor = CONFIG.sceneRefactor.amusement.tent;
   const tentGroup = new THREE.Group();
   const scale = refactor.scaleBase + heightFactor * refactor.scaleHeightFactorMultiplier;
@@ -622,7 +738,15 @@ function createTent(index, side, z, xOffset, heightFactor) {
   return tentGroup;
 }
 
+/**
+ * 観覧車オブジェクトを生成します。
+ * @param {*} z Z座標です。
+ * @param {*} x X座標です。
+ * @param {*} heightFactor 高さに応じた倍率です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createFerrisWheel(z, x, heightFactor) {
+  // この関数の主要処理をここから実行します。
   const refactor = CONFIG.sceneRefactor.amusement.ferrisWheel;
   const wheelGroup = new THREE.Group();
 
@@ -673,7 +797,12 @@ function createFerrisWheel(z, x, heightFactor) {
   return wheelGroup;
 }
 
+/**
+ * 遊園地テーマの背景一式を生成します。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createAmusementSkyline() {
+  // この関数の主要処理をここから実行します。
   const group = new THREE.Group();
   const metrics = getBackgroundMetrics();
   const refactor = CONFIG.sceneRefactor.amusement.skyline;
@@ -730,7 +859,17 @@ function createAmusementSkyline() {
   return group;
 }
 
+/**
+ * 夜景テーマのビルを生成します。
+ * @param {*} index 対象インデックスです。
+ * @param {*} z Z座標です。
+ * @param {*} side 左右の配置識別子です。
+ * @param {*} xOffset X方向オフセットです。
+ * @param {*} heightFactor 高さに応じた倍率です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createCityBuilding(index, z, side, xOffset, heightFactor) {
+  // この関数の主要処理をここから実行します。
   const refactor = CONFIG.sceneRefactor.cityNight.building;
   const group = new THREE.Group();
 
@@ -819,7 +958,17 @@ function createCityBuilding(index, z, side, xOffset, heightFactor) {
   return group;
 }
 
+/**
+ * 夜景テーマの街灯を生成します。
+ * @param {*} index 対象インデックスです。
+ * @param {*} z Z座標です。
+ * @param {*} side 左右の配置識別子です。
+ * @param {*} xOffset X方向オフセットです。
+ * @param {*} heightFactor 高さに応じた倍率です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createStreetLamp(index, z, side, xOffset, heightFactor) {
+  // この関数の主要処理をここから実行します。
   const refactor = CONFIG.sceneRefactor.cityNight.streetLamp;
   const lampGroup = new THREE.Group();
 
@@ -853,7 +1002,12 @@ function createStreetLamp(index, z, side, xOffset, heightFactor) {
   return lampGroup;
 }
 
+/**
+ * 夜景テーマの背景一式を生成します。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createCityNightScenery() {
+  // この関数の主要処理をここから実行します。
   const group = new THREE.Group();
   const metrics = getBackgroundMetrics();
   const refactor = CONFIG.sceneRefactor.cityNight.scenery;
@@ -907,7 +1061,12 @@ function createCityNightScenery() {
   return group;
 }
 
+/**
+ * 解析モード用の背景パネルを生成します。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createAnalysisBackdrop() {
+  // この関数の主要処理をここから実行します。
   const group = new THREE.Group();
   const metrics = getBackgroundMetrics();
   const refactor = CONFIG.sceneRefactor.analysis;
@@ -962,7 +1121,18 @@ function createAnalysisBackdrop() {
   return group;
 }
 
+/**
+ * 未来都市テーマの塔を生成します。
+ * @param {*} seed 生成シード値です。
+ * @param {*} z Z座標です。
+ * @param {*} side 左右の配置識別子です。
+ * @param {*} baseX 基準X座標です。
+ * @param {*} heightFactor 高さに応じた倍率です。
+ * @param {*} futureConfig 未来都市テーマ設定です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createFutureTower(seed, z, side, baseX, heightFactor, futureConfig) {
+  // この関数の主要処理をここから実行します。
   const group = new THREE.Group();
   const towerConfig = futureConfig.tower;
   const beaconConfig = futureConfig.beacon;
@@ -1077,7 +1247,16 @@ function createFutureTower(seed, z, side, baseX, heightFactor, futureConfig) {
   return group;
 }
 
+/**
+ * 未来都市テーマの空中ブリッジを生成します。
+ * @param {*} seed 生成シード値です。
+ * @param {*} z Z座標です。
+ * @param {*} halfSpan 左右の半幅です。
+ * @param {*} futureConfig 未来都市テーマ設定です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createSkyBridge(seed, z, halfSpan, futureConfig) {
+  // この関数の主要処理をここから実行します。
   const group = new THREE.Group();
   const bridgeConfig = futureConfig.bridge;
 
@@ -1126,7 +1305,16 @@ function createSkyBridge(seed, z, halfSpan, futureConfig) {
   return group;
 }
 
+/**
+ * 未来都市テーマの浮遊レーンを生成します。
+ * @param {*} seed 生成シード値です。
+ * @param {*} z Z座標です。
+ * @param {*} halfSpan 左右の半幅です。
+ * @param {*} futureConfig 未来都市テーマ設定です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createHoverLane(seed, z, halfSpan, futureConfig) {
+  // この関数の主要処理をここから実行します。
   const hoverConfig = futureConfig.hoverLane;
   const laneGroup = new THREE.Group();
 
@@ -1165,7 +1353,17 @@ function createHoverLane(seed, z, halfSpan, futureConfig) {
   return laneGroup;
 }
 
+/**
+ * 未来都市テーマのホログラム看板を生成します。
+ * @param {*} seed 生成シード値です。
+ * @param {*} z Z座標です。
+ * @param {*} side 左右の配置識別子です。
+ * @param {*} sideX 看板配置用のX座標です。
+ * @param {*} futureConfig 未来都市テーマ設定です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createHologramBillboard(seed, z, side, sideX, futureConfig) {
+  // この関数の主要処理をここから実行します。
   const holoConfig = futureConfig.hologram;
   const color = getArrayColor(holoConfig.colors, seed, 0x44d8ff);
   const panel = new THREE.Mesh(
@@ -1187,7 +1385,16 @@ function createHologramBillboard(seed, z, side, sideX, futureConfig) {
   return panel;
 }
 
+/**
+ * 未来都市テーマの流れる光表現を生成します。
+ * @param {*} seed 生成シード値です。
+ * @param {*} z Z座標です。
+ * @param {*} halfSpan 左右の半幅です。
+ * @param {*} futureConfig 未来都市テーマ設定です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createTrafficStream(seed, z, halfSpan, futureConfig) {
+  // この関数の主要処理をここから実行します。
   const trafficConfig = futureConfig.traffic;
   const color = getArrayColor(trafficConfig.colors, seed, 0x66f0ff);
   const trail = new THREE.Mesh(
@@ -1208,7 +1415,12 @@ function createTrafficStream(seed, z, halfSpan, futureConfig) {
   return trail;
 }
 
+/**
+ * 既存の背景オブジェクトを破棄してクリアします。
+ * @returns {*} なし。
+ */
 function clearBackground() {
+  // この関数の主要処理をここから実行します。
   if (app.backgroundGroup) {
     disposeObject3D(app.backgroundGroup);
     app.scene.remove(app.backgroundGroup);
@@ -1216,7 +1428,12 @@ function clearBackground() {
   }
 }
 
+/**
+ * 未来都市テーマの背景一式を生成します。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createFutureCityScenery() {
+  // この関数の主要処理をここから実行します。
   const group = new THREE.Group();
 
   const metrics = getBackgroundMetrics();
@@ -1259,7 +1476,18 @@ function createFutureCityScenery() {
   return group;
 }
 
+/**
+ * 天界神殿テーマの島オブジェクトを生成します。
+ * @param {*} seed 生成シード値です。
+ * @param {*} z Z座標です。
+ * @param {*} side 左右の配置識別子です。
+ * @param {*} baseX 基準X座標です。
+ * @param {*} heightFactor 高さに応じた倍率です。
+ * @param {*} heavenConfig 天界神殿テーマ設定です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createHeavenTempleIsland(seed, z, side, baseX, heightFactor, heavenConfig) {
+  // この関数の主要処理をここから実行します。
   const group = new THREE.Group();
   const islandConfig = heavenConfig.island;
   const templeConfig = heavenConfig.temple;
@@ -1459,7 +1687,17 @@ function createHeavenTempleIsland(seed, z, side, baseX, heightFactor, heavenConf
   return group;
 }
 
+/**
+ * 天界神殿テーマの橋を生成します。
+ * @param {*} seed 生成シード値です。
+ * @param {*} z Z座標です。
+ * @param {*} span 橋のスパン長です。
+ * @param {*} y Y座標です。
+ * @param {*} heavenConfig 天界神殿テーマ設定です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createHeavenBridge(seed, z, span, y, heavenConfig) {
+  // この関数の主要処理をここから実行します。
   const bridgeConfig = heavenConfig.bridge;
   const bridgeGroup = new THREE.Group();
 
@@ -1495,7 +1733,133 @@ function createHeavenBridge(seed, z, span, y, heavenConfig) {
   return bridgeGroup;
 }
 
+/**
+ * 天界神殿テーマの道路脇モニュメントを生成します。
+ * @param {*} seed 生成シード値です。
+ * @param {*} z Z座標です。
+ * @param {*} side 左右の配置識別子です。
+ * @param {*} roadX 道路脇のX座標です。
+ * @param {*} y Y座標です。
+ * @param {*} heavenConfig 天界神殿テーマ設定です。
+ * @returns {*} 生成したオブジェクトです。
+ */
+function createHeavenRoadsideMonument(seed, z, side, roadX, y, heavenConfig) {
+  // この関数の主要処理をここから実行します。
+  const roadsideConfig = heavenConfig.roadside;
+  const group = new THREE.Group();
+
+  const isObelisk = seed % 2 === 0;
+
+  if (isObelisk) {
+    const obeliskHeight =
+      roadsideConfig.obeliskHeightBase +
+      pseudoRandom(seed + 0.17) * roadsideConfig.obeliskHeightRandom;
+
+    const shaft = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        roadsideConfig.obeliskRadiusTop,
+        roadsideConfig.obeliskRadiusBottom,
+        obeliskHeight,
+        8
+      ),
+      new THREE.MeshStandardMaterial({
+        color: roadsideConfig.obeliskColor,
+        emissive: roadsideConfig.obeliskEmissive,
+        emissiveIntensity: roadsideConfig.obeliskEmissiveIntensity,
+        metalness: 0.18,
+        roughness: 0.35
+      })
+    );
+    shaft.position.set(0, obeliskHeight * 0.5, 0);
+    group.add(shaft);
+
+    const crown = new THREE.Mesh(
+      new THREE.SphereGeometry(2.2, 12, 12),
+      new THREE.MeshStandardMaterial({
+        color: roadsideConfig.crownColor,
+        emissive: roadsideConfig.crownEmissive,
+        emissiveIntensity: roadsideConfig.crownEmissiveIntensity,
+        transparent: true,
+        opacity: 0.92
+      })
+    );
+    crown.position.set(0, obeliskHeight + 2.8, 0);
+    crown.userData.kind = 'heavenRoadCrown';
+    crown.userData.pulseSeed = seed * 0.23;
+    crown.userData.baseEmissive = roadsideConfig.crownEmissiveIntensity;
+    group.add(crown);
+
+    const halo = new THREE.Mesh(
+      new THREE.TorusGeometry(roadsideConfig.haloRadius, roadsideConfig.haloTube, 8, 28),
+      new THREE.MeshBasicMaterial({
+        color: roadsideConfig.haloColor,
+        transparent: true,
+        opacity: roadsideConfig.haloOpacity,
+        depthWrite: false
+      })
+    );
+    halo.rotation.x = Math.PI * 0.5;
+    halo.position.set(0, obeliskHeight + 4.4, 0);
+    halo.userData.kind = 'heavenRoadHalo';
+    halo.userData.pulseSeed = seed * 0.31;
+    halo.userData.baseOpacity = roadsideConfig.haloOpacity;
+    group.add(halo);
+  } else {
+    const wing = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        roadsideConfig.wingWidth,
+        roadsideConfig.wingHeight,
+        roadsideConfig.wingDepth
+      ),
+      new THREE.MeshStandardMaterial({
+        color: roadsideConfig.wingColor,
+        emissive: roadsideConfig.wingEmissive,
+        emissiveIntensity: roadsideConfig.wingEmissiveIntensity,
+        transparent: true,
+        opacity: 0.9,
+        metalness: 0.1,
+        roughness: 0.28
+      })
+    );
+    wing.rotation.z = side < 0 ? Math.PI * 0.18 : -Math.PI * 0.18;
+    wing.position.set(0, roadsideConfig.wingHeight * 0.55, 0);
+    wing.userData.kind = 'heavenRoadWing';
+    wing.userData.pulseSeed = seed * 0.19;
+    wing.userData.baseEmissive = roadsideConfig.wingEmissiveIntensity;
+    group.add(wing);
+
+    const bannerColor = side < 0 ? roadsideConfig.bannerColorA : roadsideConfig.bannerColorB;
+    const banner = new THREE.Mesh(
+      new THREE.PlaneGeometry(roadsideConfig.bannerWidth, roadsideConfig.bannerHeight),
+      new THREE.MeshBasicMaterial({
+        color: bannerColor,
+        transparent: true,
+        opacity: roadsideConfig.bannerOpacity,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      })
+    );
+    banner.position.set(side < 0 ? -4.2 : 4.2, roadsideConfig.wingHeight * 0.65, 0);
+    banner.userData.kind = 'heavenRoadBanner';
+    banner.userData.pulseSeed = seed * 0.29;
+    banner.userData.baseOpacity = roadsideConfig.bannerOpacity;
+    group.add(banner);
+  }
+
+  group.position.set(side * roadX, y, z);
+  return group;
+}
+
+/**
+ * 天界神殿テーマの雲を生成します。
+ * @param {*} seed 生成シード値です。
+ * @param {*} z Z座標です。
+ * @param {*} metrics 背景生成用の指標です。
+ * @param {*} heavenConfig 天界神殿テーマ設定です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createHeavenCloud(seed, z, metrics, heavenConfig) {
+  // この関数の主要処理をここから実行します。
   const cloudConfig = heavenConfig.cloud;
   const width = cloudConfig.widthBase + pseudoRandom(seed + 0.1) * cloudConfig.widthRandom;
   const height = cloudConfig.heightBase + pseudoRandom(seed + 0.2) * cloudConfig.heightRandom;
@@ -1528,7 +1892,16 @@ function createHeavenCloud(seed, z, metrics, heavenConfig) {
   return cloud;
 }
 
+/**
+ * 天界神殿テーマのオーロラを生成します。
+ * @param {*} seed 生成シード値です。
+ * @param {*} z Z座標です。
+ * @param {*} metrics 背景生成用の指標です。
+ * @param {*} heavenConfig 天界神殿テーマ設定です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createHeavenAurora(seed, z, metrics, heavenConfig) {
+  // この関数の主要処理をここから実行します。
   const auroraConfig = heavenConfig.aurora;
   const width = auroraConfig.widthBase + pseudoRandom(seed + 0.11) * auroraConfig.widthRandom;
   const height = auroraConfig.heightBase + pseudoRandom(seed + 0.21) * auroraConfig.heightRandom;
@@ -1566,7 +1939,16 @@ function createHeavenAurora(seed, z, metrics, heavenConfig) {
   return aurora;
 }
 
+/**
+ * 天界神殿テーマの粒子群を生成します。
+ * @param {*} seed 生成シード値です。
+ * @param {*} z Z座標です。
+ * @param {*} metrics 背景生成用の指標です。
+ * @param {*} heavenConfig 天界神殿テーマ設定です。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createHeavenMoteCluster(seed, z, metrics, heavenConfig) {
+  // この関数の主要処理をここから実行します。
   const moteConfig = heavenConfig.motes;
   const group = new THREE.Group();
   const baseX = (pseudoRandom(seed + 0.11) * 2 - 1) * Math.max(160, metrics.width * 0.45);
@@ -1606,7 +1988,12 @@ function createHeavenMoteCluster(seed, z, metrics, heavenConfig) {
   return group;
 }
 
+/**
+ * 天界神殿テーマの背景一式を生成します。
+ * @returns {*} 生成したオブジェクトです。
+ */
 function createHeavenTempleScenery() {
+  // この関数の主要処理をここから実行します。
   const group = new THREE.Group();
   const metrics = getBackgroundMetrics();
   const heavenConfig = CONFIG.sceneRefactor.heavenTemple;
@@ -1620,6 +2007,13 @@ function createHeavenTempleScenery() {
 
   for (let i = 0; i < laneCount; i++) {
     const z = sceneryConfig.laneStartZ + i * sceneryConfig.laneSpacing;
+    const bridgeY =
+      CONFIG.sceneRefactor.heavenTemple.island.yBase +
+      metrics.heightFactor * CONFIG.sceneRefactor.heavenTemple.island.yHeightFactorMultiplier;
+    const roadX = Math.max(
+      heavenConfig.roadside.xMin,
+      sideX * heavenConfig.roadside.xMultiplier
+    );
 
     const leftIsland = createHeavenTempleIsland(i * 2, z, -1, sideX, metrics.heightFactor, heavenConfig);
     const rightIsland = createHeavenTempleIsland(
@@ -1635,8 +2029,30 @@ function createHeavenTempleScenery() {
     group.add(rightIsland);
 
     if (i % sceneryConfig.bridgeEvery === 0) {
-      const bridgeY = CONFIG.sceneRefactor.heavenTemple.island.yBase + metrics.heightFactor * CONFIG.sceneRefactor.heavenTemple.island.yHeightFactorMultiplier;
       group.add(createHeavenBridge(i, z + sceneryConfig.bridgeZOffset, sideX * heavenConfig.bridge.widthScale, bridgeY, heavenConfig));
+    }
+
+    if (i % sceneryConfig.roadsideEvery === 0) {
+      group.add(
+        createHeavenRoadsideMonument(
+          i * 2,
+          z + sceneryConfig.roadsideZOffset,
+          -1,
+          roadX,
+          bridgeY + 2,
+          heavenConfig
+        )
+      );
+      group.add(
+        createHeavenRoadsideMonument(
+          i * 2 + 1,
+          z + sceneryConfig.roadsideZOffset + 56,
+          1,
+          roadX,
+          bridgeY + 2,
+          heavenConfig
+        )
+      );
     }
 
     if (i % sceneryConfig.cloudEvery === 0) {
@@ -1656,7 +2072,12 @@ function createHeavenTempleScenery() {
   return group;
 }
 
+/**
+ * 現在テーマに応じた背景オブジェクトを生成します。
+ * @returns {*} なし。
+ */
 export function createBackground() {
+  // この関数の主要処理をここから実行します。
   clearBackground();
 
   const backgroundGroup = new THREE.Group();
@@ -1708,7 +2129,12 @@ export function createBackground() {
   app.backgroundGroup = backgroundGroup;
 }
 
+/**
+ * 高さガイドをクリアします。
+ * @returns {*} なし。
+ */
 function clearGuides() {
+  // この関数の主要処理をここから実行します。
   if (app.guideGroup) {
     disposeObject3D(app.guideGroup);
     app.scene.remove(app.guideGroup);
@@ -1716,7 +2142,12 @@ function clearGuides() {
   }
 }
 
+/**
+ * 高さガイドを生成してシーンに配置します。
+ * @returns {*} なし。
+ */
 function createHeightGuides() {
+  // この関数の主要処理をここから実行します。
   clearGuides();
 
   if (!app.buildSettings.showHeightGuides) {
@@ -1791,12 +2222,27 @@ function createHeightGuides() {
   app.guideGroup = guideGroup;
 }
 
+/**
+ * 曲線上の指定位置を安全に取得します。
+ * @param {*} curve 対象の曲線です。
+ * @param {*} t 曲線上の進行率です。
+ * @returns {*} 取得した曲線上の座標です。
+ */
 export function sampleCurvePoint(curve, t) {
+  // この関数の主要処理をここから実行します。
   if (!curve) return new THREE.Vector3();
   return curve.getPoint(Math.min(Math.max(t, 0), 1));
 }
 
+/**
+ * コース上の進行位置に応じてカメラを更新します。
+ * @param {*} curve 対象の曲線です。
+ * @param {*} t 曲線上の進行率です。
+ * @param {*} lookAhead 視線の先読み量です。
+ * @returns {*} なし。
+ */
 export function updateCameraPosition(curve, t, lookAhead) {
+  // この関数の主要処理をここから実行します。
   const pos = sampleCurvePoint(curve, t);
   const look = sampleCurvePoint(curve, Math.min(t + lookAhead, 1));
 
@@ -1823,7 +2269,12 @@ export function updateCameraPosition(curve, t, lookAhead) {
   }
 }
 
+/**
+ * テーマ変更に合わせてシーン全体を再構築します。
+ * @returns {*} なし。
+ */
 export function rebuildSceneTheme() {
+  // この関数の主要処理をここから実行します。
   const theme = getCurrentTheme();
 
   app.scene.background = new THREE.Color(theme.sceneBackground);
@@ -1843,7 +2294,12 @@ export function rebuildSceneTheme() {
   createHeightGuides();
 }
 
+/**
+ * 背景オブジェクトのアニメーションを更新します。
+ * @returns {*} なし。
+ */
 export function animateBackground() {
+  // この関数の主要処理をここから実行します。
   if (!app.backgroundGroup) return;
 
   const animationConfig = CONFIG.sceneRefactor.animation;
@@ -1980,6 +2436,7 @@ export function animateBackground() {
       const heavenConfig = CONFIG.sceneRefactor.heavenTemple;
       const animation = heavenConfig.animation;
       const auroraConfig = heavenConfig.aurora;
+      const roadsideConfig = heavenConfig.roadside;
       const time = performance.now() * 0.0024 * animation.tempo;
 
       child.traverse((part) => {
@@ -2118,6 +2575,54 @@ export function animateBackground() {
           }
         }
 
+        if (part.userData.kind === 'heavenRoadCrown') {
+          const seed = part.userData.pulseSeed || 0;
+          if (part.material && 'emissiveIntensity' in part.material) {
+            const baseEmissive = part.userData.baseEmissive || roadsideConfig.crownEmissiveIntensity;
+            part.material.emissiveIntensity =
+              baseEmissive +
+              Math.sin(time * animation.roadsidePulseSpeed + seed) *
+                animation.roadsidePulseAmplitude;
+          }
+          part.position.y += Math.sin(time * 1.1 + seed) * 0.04;
+        }
+
+        if (part.userData.kind === 'heavenRoadHalo') {
+          const seed = part.userData.pulseSeed || 0;
+          part.rotation.z += animation.haloSpin * 1.2;
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity || roadsideConfig.haloOpacity;
+            part.material.opacity =
+              baseOpacity +
+              Math.sin(time * animation.roadsidePulseSpeed + seed) *
+                animation.roadsidePulseAmplitude *
+                0.6;
+          }
+        }
+
+        if (part.userData.kind === 'heavenRoadWing') {
+          const seed = part.userData.pulseSeed || 0;
+          if (part.material && 'emissiveIntensity' in part.material) {
+            const baseEmissive = part.userData.baseEmissive || roadsideConfig.wingEmissiveIntensity;
+            part.material.emissiveIntensity =
+              baseEmissive + Math.sin(time * 1.7 + seed) * animation.roadsidePulseAmplitude;
+          }
+          part.rotation.y = Math.sin(time * 0.9 + seed) * 0.12;
+        }
+
+        if (part.userData.kind === 'heavenRoadBanner') {
+          const seed = part.userData.pulseSeed || 0;
+          if (part.material && 'opacity' in part.material) {
+            const baseOpacity = part.userData.baseOpacity || roadsideConfig.bannerOpacity;
+            part.material.opacity =
+              baseOpacity +
+              Math.sin(time * animation.roadsidePulseSpeed * 0.9 + seed) *
+                animation.roadsidePulseAmplitude *
+                0.7;
+          }
+          part.rotation.z = Math.sin(time * 1.3 + seed) * 0.08;
+        }
+
         if (part.userData.kind === 'heavenBridgeRail') {
           const seed = part.userData.pulseSeed || 0;
           if (part.material && 'opacity' in part.material) {
@@ -2132,6 +2637,11 @@ export function animateBackground() {
   }
 }
 
+/**
+ * コース再構築後にガイド表示を更新します。
+ * @returns {*} なし。
+ */
 export function refreshGuidesAfterCourseBuild() {
+  // この関数の主要処理をここから実行します。
   createHeightGuides();
 }
