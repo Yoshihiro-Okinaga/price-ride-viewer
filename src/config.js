@@ -59,7 +59,7 @@ export const CONFIG = {
       lookAheadStep: 0.001,
       invertPrice: false,
       theme: 'space',
-      showHeightGuides: true
+      showHeightGuides: true,
     },
 
     themeOptions: [

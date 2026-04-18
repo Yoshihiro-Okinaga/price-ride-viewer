@@ -4,76 +4,62 @@ import { readNumber } from './utils.js';
 
 export const ui = {
   panel: document.getElementById('ui'),
-  titleEl: document.getElementById('appTitle'),
-  csvLabelEl: document.getElementById('csvLabel'),
+  toggleUiButton: document.getElementById('toggleUiButton'),
+
+  appTitle: document.getElementById('appTitle'),
+  csvLabel: document.getElementById('csvLabel'),
   csvSelect: document.getElementById('csvSelect'),
-  startDateLabelEl: document.getElementById('startDateLabel'),
+
+  startDateLabel: document.getElementById('startDateLabel'),
   startDateInput: document.getElementById('startDate'),
-  heightScaleLabelEl: document.getElementById('heightScaleLabel'),
+
+  heightScaleLabel: document.getElementById('heightScaleLabel'),
   heightScaleInput: document.getElementById('heightScale'),
-  zStepLabelEl: document.getElementById('zStepLabel'),
+
+  zStepLabel: document.getElementById('zStepLabel'),
   zStepInput: document.getElementById('zStep'),
 
-  autoScaleLabelEl: document.getElementById('autoScaleLabel'),
-  autoScaleLabelTextEl: document.querySelector('#autoScaleLabel span'),
+  autoScaleLabel: document.getElementById('autoScaleLabel'),
+  autoScaleLabelText: document.querySelector('#autoScaleLabel span'),
   autoScaleInput: document.getElementById('autoScale'),
 
-  rideSpeedLabelEl: document.getElementById('rideSpeedLabel'),
+  rideSpeedLabel: document.getElementById('rideSpeedLabel'),
   rideSpeedInput: document.getElementById('rideSpeed'),
-  lookAheadLabelEl: document.getElementById('lookAheadLabel'),
+
+  lookAheadLabel: document.getElementById('lookAheadLabel'),
   lookAheadInput: document.getElementById('lookAhead'),
 
-  invertPriceLabelEl: document.getElementById('invertPriceLabel'),
-  invertPriceLabelTextEl: document.querySelector('#invertPriceLabel span'),
+  invertPriceLabel: document.getElementById('invertPriceLabel'),
+  invertPriceLabelText: document.querySelector('#invertPriceLabel span'),
   invertPriceInput: document.getElementById('invertPrice'),
 
-  themeLabelEl: document.getElementById('themeLabel'),
+  themeLabel: document.getElementById('themeLabel'),
   themeSelect: document.getElementById('themeSelect'),
 
-  showHeightGuidesLabelEl: document.getElementById('showHeightGuidesLabel'),
-  showHeightGuidesLabelTextEl: document.querySelector('#showHeightGuidesLabel span'),
+  showHeightGuidesLabel: document.getElementById('showHeightGuidesLabel'),
+  showHeightGuidesLabelText: document.querySelector(
+    '#showHeightGuidesLabel span'
+  ),
   showHeightGuidesInput: document.getElementById('showHeightGuides'),
 
   buildButton: document.getElementById('buildButton'),
-  toggleUiButton: document.getElementById('toggleUiButton'),
-  statusEl: document.getElementById('status')
+  status: document.getElementById('status')
 };
 
-export let isUiVisible = true;
+let isUiVisible = true;
 
-/**
- * UI表示用テキスト設定を取得します。
- * @returns {*} UI表示テキスト設定です。
- */
 function getUiText() {
-  // この関数の主要処理をここから実行します。
   return CONFIG.ui.displayText;
 }
 
-/**
- * getValidationMessage の処理を行います。
- * @returns {*} 戻り値です。
- */
 function getValidationMessage() {
-  // この関数の主要処理をここから実行します。
   return CONFIG.ui.validationMessage;
 }
 
-/**
- * getStatusFormat の処理を行います。
- * @returns {*} 戻り値です。
- */
 function getStatusFormat() {
-  // この関数の主要処理をここから実行します。
   return CONFIG.ui.statusFormat;
 }
 
-/**
- * select要素用のoption要素を生成します。
- * @param {*} value 対象の値です。
- * @param {*} label 引数です。
- * @returns {*} 生成したオブジェクトです。
- */
 function createOption(value, label) {
   const option = document.createElement('option');
   option.value = value;
@@ -81,16 +67,12 @@ function createOption(value, label) {
   return option;
 }
 
-/**
- * CSV選択肢をDOMへ反映します。
- * @returns {*} なし。
- */
 function populateCsvOptions() {
-  const placeholder = CONFIG.ui.displayText.csvPlaceholder;
+  const text = getUiText();
   const groups = CONFIG.ui.csvOptions;
 
   ui.csvSelect.innerHTML = '';
-  ui.csvSelect.appendChild(createOption('', placeholder));
+  ui.csvSelect.appendChild(createOption('', text.csvPlaceholder));
 
   for (const group of groups) {
     const optgroup = document.createElement('optgroup');
@@ -104,10 +86,6 @@ function populateCsvOptions() {
   }
 }
 
-/**
- * テーマ選択肢をDOMへ反映します。
- * @returns {*} なし。
- */
 function populateThemeOptions() {
   ui.themeSelect.innerHTML = '';
 
@@ -116,78 +94,11 @@ function populateThemeOptions() {
   }
 }
 
-/**
- * 設定値をもとにUI文言と初期状態をDOMへ反映します。
- * @returns {*} なし。
- */
-export function applyUiConfigToDom() {
-  // この関数の主要処理をここから実行します。
-  const text = getUiText();
-  const initial = CONFIG.ui.initialValues;
-
-  document.title = text.appTitle;
-  ui.titleEl.textContent = text.appVersionLabel;
-
-  ui.csvLabelEl.textContent = text.csvLabel;
-  ui.startDateLabelEl.textContent = text.startDateLabel;
-  ui.heightScaleLabelEl.textContent = text.heightScaleLabel;
-  ui.zStepLabelEl.textContent = text.zStepLabel;
-
-  if (ui.autoScaleLabelTextEl) {
-    ui.autoScaleLabelTextEl.textContent = text.autoScaleLabel;
-  }
-
-  ui.rideSpeedLabelEl.textContent = text.rideSpeedLabel;
-  ui.lookAheadLabelEl.textContent = text.lookAheadLabel;
-
-  if (ui.invertPriceLabelTextEl) {
-    ui.invertPriceLabelTextEl.textContent = text.invertPriceLabel;
-  }
-
-  ui.themeLabelEl.textContent = text.themeLabel;
-
-  if (ui.showHeightGuidesLabelTextEl) {
-    ui.showHeightGuidesLabelTextEl.textContent = text.showHeightGuidesLabel;
-  }
-
-  ui.buildButton.textContent = text.buildButtonLabel;
-  ui.statusEl.textContent = text.initialStatus;
-
-  populateCsvOptions();
-  populateThemeOptions();
-
-  ui.startDateInput.value = initial.startDate;
-  ui.heightScaleInput.value = String(initial.heightScale);
-  ui.heightScaleInput.step = String(initial.heightScaleStep);
-  ui.zStepInput.value = String(initial.zStep);
-  ui.zStepInput.step = String(initial.zStepStep);
-  ui.autoScaleInput.checked = initial.autoScale;
-  ui.rideSpeedInput.value = String(initial.rideSpeed);
-  ui.rideSpeedInput.step = String(initial.rideSpeedStep);
-  ui.lookAheadInput.value = String(initial.lookAhead);
-  ui.lookAheadInput.step = String(initial.lookAheadStep);
-  ui.invertPriceInput.checked = initial.invertPrice;
-  ui.themeSelect.value = initial.theme;
-  ui.showHeightGuidesInput.checked = initial.showHeightGuides;
-}
-
-/**
- * ステータス表示を更新します。
- * @param {*} text 表示テキストです。
- * @returns {*} なし。
- */
 export function setStatus(text) {
-  // この関数の主要処理をここから実行します。
-  ui.statusEl.textContent = text;
+  ui.status.textContent = text;
 }
 
-/**
- * UIの表示状態を切り替えます。
- * @param {*} visible 表示する場合は true です。
- * @returns {*} なし。
- */
 export function setUiVisible(visible) {
-  // この関数の主要処理をここから実行します。
   const text = getUiText();
 
   ui.panel.style.display = visible ? 'block' : 'none';
@@ -195,21 +106,11 @@ export function setUiVisible(visible) {
   isUiVisible = visible;
 }
 
-/**
- * UIの表示状態をトグルします。
- * @returns {*} なし。
- */
 export function toggleUiVisible() {
-  // この関数の主要処理をここから実行します。
   setUiVisible(!isUiVisible);
 }
 
-/**
- * UI入力値からビルド設定を読み取ります。
- * @returns {*} UIから読み取ったビルド設定です。
- */
 export function getBuildSettingsFromUI() {
-  // この関数の主要処理をここから実行します。
   const validation = getValidationMessage();
 
   const settings = {
@@ -238,12 +139,7 @@ export function getBuildSettingsFromUI() {
   return settings;
 }
 
-/**
- * UI入力値から実行時設定を反映します。
- * @returns {*} 反映後の実行時設定です。
- */
 export function applyRuntimeSettingsFromUI() {
-  // この関数の主要処理をここから実行します。
   const rideSpeed = Number(ui.rideSpeedInput.value);
   const lookAhead = Number(ui.lookAheadInput.value);
 
@@ -254,24 +150,72 @@ export function applyRuntimeSettingsFromUI() {
   if (Number.isFinite(lookAhead) && lookAhead >= 0) {
     app.runtimeSettings.lookAhead = lookAhead;
   }
+
+  return app.runtimeSettings;
 }
 
-/**
- * UIの値をアプリ状態へ同期します。
- * @returns {*} なし。
- */
 export function syncStateFromUI() {
-  // この関数の主要処理をここから実行します。
   app.buildSettings = getBuildSettingsFromUI();
   applyRuntimeSettingsFromUI();
 }
 
-/**
- * 現在の状態に基づいてステータス表示を組み立てます。
- * @returns {*} なし。
- */
+export function applyUiConfigToDom() {
+  const text = getUiText();
+  const initial = CONFIG.ui.initialValues;
+
+  document.title = text.appTitle;
+  ui.appTitle.textContent = text.appTitle;
+
+  ui.csvLabel.textContent = text.csvLabel;
+  ui.startDateLabel.textContent = text.startDateLabel;
+  ui.heightScaleLabel.textContent = text.heightScaleLabel;
+  ui.zStepLabel.textContent = text.zStepLabel;
+  ui.rideSpeedLabel.textContent = text.rideSpeedLabel;
+  ui.lookAheadLabel.textContent = text.lookAheadLabel;
+  ui.themeLabel.textContent = text.themeLabel;
+  ui.buildButton.textContent = text.buildButtonLabel;
+  ui.status.textContent = text.initialStatus;
+
+  if (ui.autoScaleLabelText) {
+    ui.autoScaleLabelText.textContent = text.autoScaleLabel;
+  }
+
+  if (ui.invertPriceLabelText) {
+    ui.invertPriceLabelText.textContent = text.invertPriceLabel;
+  }
+
+  if (ui.showHeightGuidesLabelText) {
+    ui.showHeightGuidesLabelText.textContent = text.showHeightGuidesLabel;
+  }
+
+  populateCsvOptions();
+  populateThemeOptions();
+
+  ui.startDateInput.value = initial.startDate;
+  ui.heightScaleInput.value = String(initial.heightScale);
+  ui.heightScaleInput.step = String(initial.heightScaleStep);
+  ui.zStepInput.value = String(initial.zStep);
+  ui.zStepInput.step = String(initial.zStepStep);
+  ui.autoScaleInput.checked = initial.autoScale;
+  ui.rideSpeedInput.value = String(initial.rideSpeed);
+  ui.rideSpeedInput.step = String(initial.rideSpeedStep);
+  ui.lookAheadInput.value = String(initial.lookAhead);
+  ui.lookAheadInput.step = String(initial.lookAheadStep);
+  ui.invertPriceInput.checked = initial.invertPrice;
+  ui.themeSelect.value = initial.theme;
+  ui.showHeightGuidesInput.checked = initial.showHeightGuides;
+
+  if (initial.csvUrl) {
+    ui.csvSelect.value = initial.csvUrl;
+  }
+}
+
+export function applyAutoBuildParamsToUI(autoParams) {
+  ui.heightScaleInput.value = String(autoParams.heightScale);
+  ui.zStepInput.value = String(autoParams.zStep);
+}
+
 export function updateStatus() {
-  // この関数の主要処理をここから実行します。
   const info = app.lastBuildInfo;
   const runtime = app.runtimeSettings;
   const text = getUiText();
@@ -282,24 +226,25 @@ export function updateStatus() {
     return;
   }
 
-  setStatus(
-    [
-      `件数: ${info.rowCount}`,
-      `期間: ${info.firstDate} ～ ${info.lastDate}`,
-      `基準終値（${info.invertPrice ? text.baseCloseHigh : text.baseCloseLow}）: ${info.baseClose.toFixed(format.priceDecimals)}`,
-      `高さ倍率: ${info.heightScale}`,
-      `Z間隔: ${info.zStep}`,
-      `コース最大高さ(Y): ${info.maxY.toFixed(format.maxYDecimals)}`,
-      `地面サイズ: ${info.groundWidth} x ${info.groundDepth}`,
-      `自動調整: ${info.autoScale ? text.autoScaleOn : text.autoScaleOff}`,
-      `期間最安値: ${info.minClose.toFixed(format.priceDecimals)}`,
-      `期間最高値: ${info.maxClose.toFixed(format.priceDecimals)}`,
-      `視線先読み量: ${runtime.lookAhead}`,
-      `移動速度: ${runtime.rideSpeed}`,
-      `価格の反転: ${info.invertPrice ? text.invertOn : text.invertOff}`,
-      `背景テーマ: ${info.themeLabel}`,
-      `高さガイド: ${info.showHeightGuides ? text.guideVisible : text.guideHidden}`,
-      `UI切替: ${text.uiToggleHelp}`
-    ].join('\n')
-  );
+  const lines = [
+    `件数: ${info.rowCount}`,
+    `期間: ${info.firstDate} ～ ${info.lastDate}`,
+    `${text.baseCloseLow}: ${info.minClose.toFixed(format.priceDecimals)}`,
+    `${text.baseCloseHigh}: ${info.maxClose.toFixed(format.priceDecimals)}`,
+    `高さ倍率: ${info.heightScale}`,
+    `Z間隔: ${info.zStep}`,
+    `最大Y: ${info.maxY.toFixed(format.maxYDecimals)}`,
+    `地面: ${info.groundWidth} × ${info.groundDepth}`,
+    `自動調整: ${info.autoScale ? text.autoScaleOn : text.autoScaleOff}`,
+    `価格表示: ${info.invertPrice ? text.invertOn : text.invertOff}`,
+    `背景: ${info.themeLabel}`,
+    `高さガイド: ${
+      info.showHeightGuides ? text.guideVisible : text.guideHidden
+    }`,
+    `移動速度: ${runtime.rideSpeed}`,
+    `先読み量: ${runtime.lookAhead}`,
+    `UI切替: ${text.uiToggleHelp}`
+  ];
+
+  setStatus(lines.join(' / '));
 }
