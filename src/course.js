@@ -1,7 +1,7 @@
 import * as THREE from 'https://unpkg.com/three@0.183.0/build/three.module.js';
 import { CONFIG } from './config.js';
 import { app } from './state.js';
-import { ui, getBuildSettingsFromUI, updateStatus } from './ui.js';
+import { ui } from './ui.js';
 import { disposeObject3D, getPosYByPrice, toDateTextLocal } from './utils.js';
 import {
   parseCSV,
@@ -556,11 +556,8 @@ export async function previewAutoBuildParamsFromCurrentInput() {
  * UI入力をもとにコースを構築します。
  * @returns {*} Promise<void> です。
  */
-export async function buildCourseFromUI() {
-  // この関数の主要処理をここから実行します。
+export async function buildCourse(buildSettings) {
   resetCourseGroup();
-
-  const buildSettings = getBuildSettingsFromUI();
 
   const csvText = await readCsvTextFromUrl(buildSettings.csvUrl);
   const allRows = parseCSV(csvText);
@@ -568,9 +565,11 @@ export async function buildCourseFromUI() {
 
   if (buildSettings.autoScale) {
     const autoParams = calcAutoBuildParams(filteredRows);
-    applyAutoBuildParamsToUI(autoParams);
-    buildSettings.heightScale = autoParams.heightScale;
-    buildSettings.zStep = autoParams.zStep;
+    buildSettings = {
+      ...buildSettings,
+      heightScale: autoParams.heightScale,
+      zStep: autoParams.zStep
+    };
   }
 
   app.buildSettings = { ...buildSettings };
@@ -615,5 +614,8 @@ export async function buildCourseFromUI() {
     showHeightGuides: buildSettings.showHeightGuides
   };
 
-  updateStatus();
+  return {
+    buildSettings,
+    autoAdjusted: buildSettings.autoScale
+  };
 }

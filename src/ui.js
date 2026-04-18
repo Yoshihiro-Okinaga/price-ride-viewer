@@ -75,7 +75,6 @@ function getStatusFormat() {
  * @returns {*} 生成したオブジェクトです。
  */
 function createOption(value, label) {
-  // この関数の主要処理をここから実行します。
   const option = document.createElement('option');
   option.value = value;
   option.textContent = label;
@@ -87,13 +86,13 @@ function createOption(value, label) {
  * @returns {*} なし。
  */
 function populateCsvOptions() {
-  // この関数の主要処理をここから実行します。
-  const text = getUiText();
+  const placeholder = CONFIG.ui.displayText.csvPlaceholder;
+  const groups = CONFIG.ui.csvOptions;
+
   ui.csvSelect.innerHTML = '';
+  ui.csvSelect.appendChild(createOption('', placeholder));
 
-  ui.csvSelect.appendChild(createOption('', text.csvPlaceholder));
-
-  for (const group of CONFIG.ui.csvOptions) {
+  for (const group of groups) {
     const optgroup = document.createElement('optgroup');
     optgroup.label = group.groupLabel;
 
@@ -110,7 +109,6 @@ function populateCsvOptions() {
  * @returns {*} なし。
  */
 function populateThemeOptions() {
-  // この関数の主要処理をここから実行します。
   ui.themeSelect.innerHTML = '';
 
   for (const item of CONFIG.ui.themeOptions) {

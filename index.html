@@ -6,99 +6,64 @@
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
-  <button id="toggleUiButton">UIを隠す</button>
+  <button id="toggleUiButton"></button>
 
   <div id="ui">
-    <div class="panelTitle"><strong id="appTitle">Ride Viewer 2026-04-01 TEST</strong></div>
+    <div class="panelTitle"><strong id="appTitle"></strong></div>
 
     <div class="fieldRow">
-      <label id="csvLabel" for="csvSelect">CSVファイル</label>
-      <select id="csvSelect">
-        <option value="">選択してください</option>
-
-        <optgroup label="FXCFD">
-          <option value="./stock-data/FXCFD/USD_JPY.csv">FXCFD / USD_JPY</option>
-          <option value="./stock-data/FXCFD/EUR_USD.csv">FXCFD / EUR_USD</option>
-          <option value="./stock-data/FXCFD/GBP_USD.csv">FXCFD / GBP_USD</option>
-          <option value="./stock-data/FXCFD/GOLD_USD.csv">FXCFD / GOLD_USD</option>
-          <option value="./stock-data/FXCFD/JAPAN255_Futures.csv">FXCFD / JAPAN255_Futures</option>
-        </optgroup>
-
-        <optgroup label="FXCFD / Sub">
-          <option value="./stock-data/FXCFD/Sub/EUR_JPY.csv">FXCFD / Sub / EUR_JPY</option>
-          <option value="./stock-data/FXCFD/Sub/GBP_JPY.csv">FXCFD / Sub / GBP_JPY</option>
-          <option value="./stock-data/FXCFD/Sub/AUD_JPY.csv">FXCFD / Sub / AUD_JPY</option>
-          <option value="./stock-data/FXCFD/Sub/TRY_JPY.csv">FXCFD / Sub / TRY_JPY</option>
-        </optgroup>
-
-        <optgroup label="Stock">
-          <option value="./stock-data/Stock/日経平均.csv">Stock / 日経平均</option>
-          <option value="./stock-data/Stock/6752_パナソニック.csv">Stock / 6752_パナソニック</option>
-          <option value="./stock-data/Stock/5401_日本製鉄.csv">Stock / 5401_日本製鉄</option>
-          <option value="./stock-data/Stock/8802_三菱地所.csv">Stock / 8802_三菱地所</option>
-        </optgroup>
-
-        <optgroup label="Stock / Sub">
-          <option value="./stock-data/Stock/Sub/9697_カプコン.csv">Stock / Sub / 9697_カプコン</option>
-          <option value="./stock-data/Stock/Sub/7201_日産自動車.csv">Stock / Sub / 7201_日産自動車</option>
-          <option value="./stock-data/Stock/Sub/8001_伊藤忠商事.csv">Stock / Sub / 8001_伊藤忠商事</option>
-        </optgroup>
-
-        <optgroup label="Stock / Verification">
-          <option value="./stock-data/Stock/Verification/9501_東京電力ホールディングス.csv">Stock / Verification / 9501_東京電力ホールディングス</option>
-          <option value="./stock-data/Stock/Verification/9503_関西電力.csv">Stock / Verification / 9503_関西電力</option>
-        </optgroup>
-      </select>
+      <label id="csvLabel" for="csvSelect"></label>
+      <select id="csvSelect"></select>
     </div>
 
     <div class="fieldRow">
-      <label id="startDateLabel" for="startDate">開始日</label>
-      <input type="date" id="startDate" value="2026-01-01" />
+      <label id="startDateLabel" for="startDate"></label>
+      <input type="date" id="startDate" />
     </div>
 
     <div class="fieldRow">
-      <label id="heightScaleLabel" for="heightScale">高さ倍率</label>
-      <input type="number" id="heightScale" value="1000" step="100" />
+      <label id="heightScaleLabel" for="heightScale"></label>
+      <input type="number" id="heightScale" />
     </div>
 
     <div class="fieldRow">
-      <label id="zStepLabel" for="zStep">Z間隔</label>
-      <input type="number" id="zStep" value="80" step="1" />
+      <label id="zStepLabel" for="zStep"></label>
+      <input type="number" id="zStep" />
     </div>
 
     <label class="checkboxRow" id="autoScaleLabel" for="autoScale">
-      <span>自動調整</span>
-      <input type="checkbox" id="autoScale" checked />
+      <span></span>
+      <input type="checkbox" id="autoScale" />
     </label>
 
     <div class="fieldRow">
-      <label id="rideSpeedLabel" for="rideSpeed">移動速度</label>
-      <input type="number" id="rideSpeed" value="0.03" step="0.01" />
+      <label id="rideSpeedLabel" for="rideSpeed"></label>
+      <input type="number" id="rideSpeed" />
     </div>
 
     <div class="fieldRow">
-      <label id="lookAheadLabel" for="lookAhead">先読み量</label>
-      <input type="number" id="lookAhead" value="0.01" step="0.001" />
+      <label id="lookAheadLabel" for="lookAhead"></label>
+      <input type="number" id="lookAhead" />
     </div>
 
     <label class="checkboxRow" id="invertPriceLabel" for="invertPrice">
-      <span>価格反転</span>
+      <span></span>
       <input type="checkbox" id="invertPrice" />
     </label>
 
     <div class="fieldRow">
-      <label id="themeLabel" for="themeSelect">背景</label>
+      <label id="themeLabel" for="themeSelect"></label>
       <select id="themeSelect"></select>
     </div>
 
     <label class="checkboxRow" id="showHeightGuidesLabel" for="showHeightGuides">
-      <span>高さガイド</span>
-      <input type="checkbox" id="showHeightGuides" checked />
+      <span></span>
+      <input type="checkbox" id="showHeightGuides" />
     </label>
 
-    <button id="buildButton">コースを作る</button>
+    <button id="buildButton"></button>
 
-    <div id="status">CSVを選んで「コースを作る」を押してください。</div>
+    <div id="status"></div>
   </div>
 
   <script type="module" src="./src/main.js"></script>

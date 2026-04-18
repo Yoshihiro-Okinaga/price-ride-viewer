@@ -18,8 +18,13 @@ import {
   rebuildSceneTheme
 } from './scene.js';
 import {
-  buildCourseFromUI,
-  previewAutoBuildParamsFromCurrentInput
+  getBuildSettingsFromUI,
+  updateStatus
+} from './ui.js';
+import {
+  buildCourse,
+  previewAutoBuildParamsFromCurrentInput,
+  applyAutoBuildParamsToUI
 } from './course.js';
 
 /**
@@ -130,7 +135,17 @@ function setupEvents() {
   // この関数の主要処理をここから実行します。
   ui.buildButton.addEventListener('click', async () => {
     try {
-      await buildCourseFromUI();
+      const buildSettings = getBuildSettingsFromUI();
+      const result = await buildCourse(buildSettings);
+
+      if (result.autoAdjusted) {
+        applyAutoBuildParamsToUI({
+          heightScale: result.buildSettings.heightScale,
+          zStep: result.buildSettings.zStep
+        });
+      }
+
+      updateStatus();
     } catch (error) {
       setStatus(buildErrorMessage(error));
     }
