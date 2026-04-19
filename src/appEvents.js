@@ -2,6 +2,8 @@ import { SCENE_CONFIG } from './config/sceneConfig.js';
 import { UI_CONFIG } from './config/uiConfig.js';
 import { app } from './state.js';
 import { ui, toggleUiVisible } from './ui.js';
+import { primeRideSound } from './rideSound.js';
+import { primeRideHaptics } from './rideHaptics.js';
 
 /**
  * UIやウィンドウのイベントを登録します。
@@ -14,6 +16,14 @@ import { ui, toggleUiVisible } from './ui.js';
  * }} handlers イベント時に実行する処理群です。
  */
 export function setupEvents(handlers) {
+  const unlockFeedback = () => {
+    void primeRideSound();
+    void primeRideHaptics();
+  };
+
+  window.addEventListener('pointerdown', unlockFeedback, { once: true });
+  window.addEventListener('keydown', unlockFeedback, { once: true });
+
   ui.buildButton.addEventListener('click', handlers.onBuildButtonClick);
 
   ui.csvSelect.addEventListener('change', async () => {
