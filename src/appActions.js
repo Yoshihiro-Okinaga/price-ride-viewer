@@ -85,6 +85,8 @@ export async function handleBuildButtonClick() {
     const buildSettings = getBuildSettingsFromUI();
     const result = await buildCourse(buildSettings);
 
+    app.lastBuildInfo = result.lastBuildInfo;
+
     if (result.autoParams) {
       applyAutoBuildParamsToUI(result.autoParams);
     }

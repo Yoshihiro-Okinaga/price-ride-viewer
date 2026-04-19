@@ -50,12 +50,15 @@ function getPointMaxY(points) {
  * @param {THREE.Vector3} point 対象ポイントです。
  * @param {object} buildSettings ビルド設定です。
  * @param {number} labelYOffset ラベルYオフセットです。
+ * @param {number} minClose 最小終値です。
+ * @param {number} maxClose 最大終値です。
+ * @param {THREE.Group} courseGroup 追加先グループです。
  */
-function addPriceLabel(price, point, buildSettings, labelYOffset) {
+function addPriceLabel(price, point, buildSettings, labelYOffset, minClose, maxClose, courseGroup) {
   const priceY = getPosYByPrice(
     price,
-    app.maxClose,
-    app.minClose,
+    maxClose,
+    minClose,
     buildSettings.heightScale,
     buildSettings.invertPrice
   );
@@ -70,7 +73,7 @@ function addPriceLabel(price, point, buildSettings, labelYOffset) {
     point.z
   );
 
-  app.courseGroup.add(label);
+  courseGroup.add(label);
 }
 
 /**
@@ -115,8 +118,11 @@ export function buildSmoothCurve(points) {
  * @param {number[]} prices 価格配列です。
  * @param {{date: Date, close: number}[]} rows 価格データ行配列です。
  * @param {object} buildSettings ビルド設定です。
+ * @param {number} minClose 最小終値です。
+ * @param {number} maxClose 最大終値です。
+ * @param {THREE.Group} courseGroup 追加先グループです。
  */
-export function addMonthlyLabels(points, prices, rows, buildSettings) {
+export function addMonthlyLabels(points, prices, rows, buildSettings, minClose, maxClose, courseGroup) {
   if (!points.length || !rows.length) {
     return;
   }
@@ -149,20 +155,26 @@ export function addMonthlyLabels(points, prices, rows, buildSettings) {
       point.y + CONFIG.label.position.yOffset,
       point.z
     );
-    app.courseGroup.add(monthLabel);
+    courseGroup.add(monthLabel);
 
     addPriceLabel(
       prices[i] * monthlyLabelConfig.upperPriceRatio,
       point,
       buildSettings,
-      CONFIG.label.position.yOffset
+      CONFIG.label.position.yOffset,
+      minClose,
+      maxClose,
+      courseGroup
     );
 
     addPriceLabel(
       prices[i] * monthlyLabelConfig.lowerPriceRatio,
       point,
       buildSettings,
-      CONFIG.label.position.yOffset
+      CONFIG.label.position.yOffset,
+      minClose,
+      maxClose,
+      courseGroup
     );
   }
 }
@@ -170,9 +182,11 @@ export function addMonthlyLabels(points, prices, rows, buildSettings) {
 /**
  * 曲線からコース表示用メッシュ一式を構築します。
  * @param {THREE.Curve} curve 対象の曲線です。
+ * @param {THREE.Group} courseGroup 追加先グループです。
+ * @param {number} pointCount コース点数です。
  */
-export function buildCourseMeshes(curve) {
-  addRailsToGroup(app.courseGroup, curve, app.coursePoints.length);
+export function buildCourseMeshes(curve, courseGroup, pointCount) {
+  addRailsToGroup(courseGroup, curve, pointCount);
 }
 
 /**
@@ -388,19 +402,23 @@ export async function buildCourse(buildSettings) {
   const prepared = await prepareCourseBuildData(buildSettings);
   applyCourseBuildResult(prepared);
 
-  buildCourseMeshes(app.curve);
+  buildCourseMeshes(app.curve, app.courseGroup, app.coursePoints.length);
   addMonthlyLabels(
     prepared.points,
     prepared.prices,
     prepared.filteredRows,
-    prepared.buildSettings
+    prepared.buildSettings,
+    prepared.minClose,
+    prepared.maxClose,
+    app.courseGroup
   );
 
-  app.lastBuildInfo = createLastBuildInfo(prepared);
+  const lastBuildInfo = createLastBuildInfo(prepared);
 
   return {
     buildSettings: prepared.buildSettings,
     autoAdjusted: prepared.autoParams !== null,
-    autoParams: prepared.autoParams
+    autoParams: prepared.autoParams,
+    lastBuildInfo
   };
 }
