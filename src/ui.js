@@ -1,5 +1,4 @@
-import { CONFIG } from './config.js';
-import { app } from './state.js';
+import { UI_CONFIG } from './config/uiConfig.js';
 import { readNumber } from './utils.js';
 
 export const ui = {
@@ -49,15 +48,15 @@ export const ui = {
 let isUiVisible = true;
 
 function getUiText() {
-  return CONFIG.ui.displayText;
+  return UI_CONFIG.displayText;
 }
 
 function getValidationMessage() {
-  return CONFIG.ui.validationMessage;
+  return UI_CONFIG.validationMessage;
 }
 
 function getStatusFormat() {
-  return CONFIG.ui.statusFormat;
+  return UI_CONFIG.statusFormat;
 }
 
 function createOption(value, label) {
@@ -69,7 +68,7 @@ function createOption(value, label) {
 
 function populateCsvOptions() {
   const text = getUiText();
-  const groups = CONFIG.ui.csvOptions;
+  const groups = UI_CONFIG.csvOptions;
 
   ui.csvSelect.innerHTML = '';
   ui.csvSelect.appendChild(createOption('', text.csvPlaceholder));
@@ -89,7 +88,7 @@ function populateCsvOptions() {
 function populateThemeOptions() {
   ui.themeSelect.innerHTML = '';
 
-  for (const item of CONFIG.ui.themeOptions) {
+  for (const item of UI_CONFIG.themeOptions) {
     ui.themeSelect.appendChild(createOption(item.value, item.label));
   }
 }
@@ -139,29 +138,32 @@ export function getBuildSettingsFromUI() {
   return settings;
 }
 
-export function applyRuntimeSettingsFromUI() {
+export function getRuntimeSettingsFromUI(currentRuntimeSettings) {
+  const nextRuntimeSettings = { ...currentRuntimeSettings };
   const rideSpeed = Number(ui.rideSpeedInput.value);
   const lookAhead = Number(ui.lookAheadInput.value);
 
   if (Number.isFinite(rideSpeed) && rideSpeed >= 0) {
-    app.runtimeSettings.rideSpeed = rideSpeed;
+    nextRuntimeSettings.rideSpeed = rideSpeed;
   }
 
   if (Number.isFinite(lookAhead) && lookAhead >= 0) {
-    app.runtimeSettings.lookAhead = lookAhead;
+    nextRuntimeSettings.lookAhead = lookAhead;
   }
 
-  return app.runtimeSettings;
+  return nextRuntimeSettings;
 }
 
-export function syncStateFromUI() {
-  app.buildSettings = getBuildSettingsFromUI();
-  applyRuntimeSettingsFromUI();
+export function getSceneDisplaySettingsFromUI() {
+  return {
+    theme: ui.themeSelect.value,
+    showHeightGuides: ui.showHeightGuidesInput.checked
+  };
 }
 
 export function applyUiConfigToDom() {
   const text = getUiText();
-  const initial = CONFIG.ui.initialValues;
+  const initial = UI_CONFIG.initialValues;
 
   document.title = text.appTitle;
   ui.appTitle.textContent = text.appTitle;
@@ -215,9 +217,9 @@ export function applyAutoBuildParamsToUI(autoParams) {
   ui.zStepInput.value = String(autoParams.zStep);
 }
 
-export function updateStatus() {
-  const info = app.lastBuildInfo;
-  const runtime = app.runtimeSettings;
+export function updateStatus(lastBuildInfo, runtimeSettings) {
+  const info = lastBuildInfo;
+  const runtime = runtimeSettings;
   const text = getUiText();
   const format = getStatusFormat();
 

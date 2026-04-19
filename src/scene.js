@@ -1,6 +1,6 @@
 import * as THREE from 'https://unpkg.com/three@0.183.0/build/three.module.js';
 import { VRButton } from 'https://unpkg.com/three@0.183.0/examples/jsm/webxr/VRButton.js';
-import { CONFIG } from './config.js';
+import { SCENE_CONFIG as CONFIG } from './config/sceneConfig.js';
 import { app } from './state.js';
 import { disposeObject3D, pseudoRandom } from './utils.js';
 
@@ -892,6 +892,19 @@ function createCityBuilding(index, z, side, xOffset, heightFactor) {
 
   const cols = Math.max(refactor.colsMin, Math.floor(width / refactor.colsWidthDivisor));
   const rows = Math.max(refactor.rowsMin, Math.floor(height / refactor.rowsHeightDivisor));
+  const windowByColor = [[], [], []];
+
+  const getWindowColorIndex = (warm) => {
+    if (warm < 0.5) {
+      return 0;
+    }
+
+    if (warm < 0.8) {
+      return 1;
+    }
+
+    return 2;
+  };
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -899,32 +912,94 @@ function createCityBuilding(index, z, side, xOffset, heightFactor) {
         continue;
       }
 
-      const winGeo = new THREE.PlaneGeometry(refactor.windowWidth, refactor.windowHeight);
       const warm = pseudoRandom(index * 300 + r * 11 + c * 7);
-      const color = warm < 0.5 ? 0xffd77a : (warm < 0.8 ? 0x9fd3ff : 0xff9ecf);
+      const colorIndex = getWindowColorIndex(warm);
 
-      const winMat = new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity: refactor.windowOpacity
-      });
-
-      const front = new THREE.Mesh(winGeo, winMat);
-      front.position.set(
+      const xPos =
         -width / 2 +
-          refactor.windowInsetX +
-          c * ((width - refactor.windowInsetX * 2) / Math.max(1, cols - 1)),
+        refactor.windowInsetX +
+        c * ((width - refactor.windowInsetX * 2) / Math.max(1, cols - 1));
+      const yPos =
         refactor.windowInsetY +
-          r * ((height - refactor.windowInsetY * 2) / Math.max(1, rows - 1)),
-        depth / 2 + refactor.windowInsetZ
-      );
-      group.add(front);
+        r * ((height - refactor.windowInsetY * 2) / Math.max(1, rows - 1));
 
-      const back = new THREE.Mesh(winGeo, winMat);
-      back.position.set(front.position.x, front.position.y, -depth / 2 - refactor.windowInsetZ);
-      back.rotation.y = Math.PI;
-      group.add(back);
+      windowByColor[colorIndex].push({
+        x: xPos,
+        y: yPos,
+        zFront: depth / 2 + refactor.windowInsetZ,
+        zBack: -depth / 2 - refactor.windowInsetZ
+      });
     }
+  }
+
+  const windowGeometry = new THREE.PlaneGeometry(
+    refactor.windowWidth,
+    refactor.windowHeight
+  );
+  const windowMaterials = [
+    new THREE.MeshBasicMaterial({
+      color: 0xffd77a,
+      transparent: true,
+      opacity: refactor.windowOpacity
+    }),
+    new THREE.MeshBasicMaterial({
+      color: 0x9fd3ff,
+      transparent: true,
+      opacity: refactor.windowOpacity
+    }),
+    new THREE.MeshBasicMaterial({
+      color: 0xff9ecf,
+      transparent: true,
+      opacity: refactor.windowOpacity
+    })
+  ];
+
+  const position = new THREE.Vector3();
+  const scale = new THREE.Vector3(1, 1, 1);
+  const frontQuaternion = new THREE.Quaternion();
+  const backQuaternion = new THREE.Quaternion().setFromAxisAngle(
+    new THREE.Vector3(0, 1, 0),
+    Math.PI
+  );
+  const matrix = new THREE.Matrix4();
+
+  for (let colorIndex = 0; colorIndex < windowByColor.length; colorIndex++) {
+    const windows = windowByColor[colorIndex];
+
+    if (windows.length === 0) {
+      continue;
+    }
+
+    const frontInstances = new THREE.InstancedMesh(
+      windowGeometry,
+      windowMaterials[colorIndex],
+      windows.length
+    );
+    frontInstances.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+
+    const backInstances = new THREE.InstancedMesh(
+      windowGeometry,
+      windowMaterials[colorIndex],
+      windows.length
+    );
+    backInstances.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+
+    for (let i = 0; i < windows.length; i++) {
+      const windowPos = windows[i];
+
+      position.set(windowPos.x, windowPos.y, windowPos.zFront);
+      matrix.compose(position, frontQuaternion, scale);
+      frontInstances.setMatrixAt(i, matrix);
+
+      position.set(windowPos.x, windowPos.y, windowPos.zBack);
+      matrix.compose(position, backQuaternion, scale);
+      backInstances.setMatrixAt(i, matrix);
+    }
+
+    frontInstances.instanceMatrix.needsUpdate = true;
+    backInstances.instanceMatrix.needsUpdate = true;
+    group.add(frontInstances);
+    group.add(backInstances);
   }
 
   if (pseudoRandom(index + 1003) > refactor.antennaThreshold) {
@@ -959,46 +1034,77 @@ function createCityBuilding(index, z, side, xOffset, heightFactor) {
 }
 
 /**
- * 夜景テーマの街灯を生成します。
- * @param {*} index 対象インデックスです。
- * @param {*} z Z座標です。
- * @param {*} side 左右の配置識別子です。
- * @param {*} xOffset X方向オフセットです。
- * @param {*} heightFactor 高さに応じた倍率です。
- * @returns {*} 生成したオブジェクトです。
+ * 夜景テーマの街灯をInstancedMeshで一括生成します。
+ * @param {{index: number, z: number, side: number, xOffset: number}[]} lamps
+ *   街灯配置情報配列です。
+ * @param {number} heightFactor 高さに応じた倍率です。
+ * @returns {THREE.Group} 生成した街灯グループです。
  */
-function createStreetLamp(index, z, side, xOffset, heightFactor) {
-  // この関数の主要処理をここから実行します。
+function createStreetLampInstances(lamps, heightFactor) {
   const refactor = CONFIG.sceneRefactor.cityNight.streetLamp;
   const lampGroup = new THREE.Group();
 
-  const poleHeight =
-    refactor.poleHeightBase +
-    pseudoRandom(index + 1400) * refactor.poleHeightRandomMultiplier +
-    heightFactor * refactor.poleHeightFactorMultiplier;
+  if (lamps.length === 0) {
+    return lampGroup;
+  }
 
-  const poleGeo = new THREE.CylinderGeometry(
+  const poleGeometry = new THREE.CylinderGeometry(
     refactor.poleRadiusTop,
     refactor.poleRadiusBottom,
-    poleHeight,
+    1,
     refactor.poleRadialSegments
   );
-  const poleMat = new THREE.MeshLambertMaterial({ color: 0xb8c2d6 });
-  const pole = new THREE.Mesh(poleGeo, poleMat);
-  pole.position.y = poleHeight / 2;
-  lampGroup.add(pole);
+  const poleMaterial = new THREE.MeshLambertMaterial({ color: 0xb8c2d6 });
+  const poleInstances = new THREE.InstancedMesh(
+    poleGeometry,
+    poleMaterial,
+    lamps.length
+  );
+  poleInstances.instanceMatrix.setUsage(THREE.StaticDrawUsage);
 
-  const headGeo = new THREE.SphereGeometry(
+  const headGeometry = new THREE.SphereGeometry(
     refactor.headRadius,
     refactor.headWidthSegments,
     refactor.headHeightSegments
   );
-  const headMat = new THREE.MeshBasicMaterial({ color: 0xffd58a });
-  const head = new THREE.Mesh(headGeo, headMat);
-  head.position.y = poleHeight + refactor.headYOffset;
-  lampGroup.add(head);
+  const headMaterial = new THREE.MeshBasicMaterial({ color: 0xffd58a });
+  const headInstances = new THREE.InstancedMesh(
+    headGeometry,
+    headMaterial,
+    lamps.length
+  );
+  headInstances.instanceMatrix.setUsage(THREE.StaticDrawUsage);
 
-  lampGroup.position.set(side * xOffset, 0, z);
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const position = new THREE.Vector3();
+  const poleScale = new THREE.Vector3(1, 1, 1);
+  const headScale = new THREE.Vector3(1, 1, 1);
+
+  for (let i = 0; i < lamps.length; i++) {
+    const lamp = lamps[i];
+    const x = lamp.side * lamp.xOffset;
+
+    const poleHeight =
+      refactor.poleHeightBase +
+      pseudoRandom(lamp.index + 1400) * refactor.poleHeightRandomMultiplier +
+      heightFactor * refactor.poleHeightFactorMultiplier;
+
+    position.set(x, poleHeight / 2, lamp.z);
+    poleScale.set(1, poleHeight, 1);
+    matrix.compose(position, quaternion, poleScale);
+    poleInstances.setMatrixAt(i, matrix);
+
+    position.set(x, poleHeight + refactor.headYOffset, lamp.z);
+    matrix.compose(position, quaternion, headScale);
+    headInstances.setMatrixAt(i, matrix);
+  }
+
+  poleInstances.instanceMatrix.needsUpdate = true;
+  headInstances.instanceMatrix.needsUpdate = true;
+  lampGroup.add(poleInstances);
+  lampGroup.add(headInstances);
+
   return lampGroup;
 }
 
@@ -1011,6 +1117,7 @@ function createCityNightScenery() {
   const group = new THREE.Group();
   const metrics = getBackgroundMetrics();
   const refactor = CONFIG.sceneRefactor.cityNight.scenery;
+  const lampEntries = [];
 
   const laneCount = Math.max(
     refactor.laneCountMin,
@@ -1037,26 +1144,22 @@ function createCityNightScenery() {
     );
 
     if (i % refactor.lampEvery === 0) {
-      group.add(
-        createStreetLamp(
-          i * 2,
-          z + refactor.leftLampZOffset,
-          -1,
-          lampX,
-          metrics.heightFactor
-        )
-      );
-      group.add(
-        createStreetLamp(
-          i * 2 + 1,
-          z + refactor.rightLampZOffset,
-          1,
-          lampX,
-          metrics.heightFactor
-        )
-      );
+      lampEntries.push({
+        index: i * 2,
+        z: z + refactor.leftLampZOffset,
+        side: -1,
+        xOffset: lampX
+      });
+      lampEntries.push({
+        index: i * 2 + 1,
+        z: z + refactor.rightLampZOffset,
+        side: 1,
+        xOffset: lampX
+      });
     }
   }
+
+  group.add(createStreetLampInstances(lampEntries, metrics.heightFactor));
 
   return group;
 }

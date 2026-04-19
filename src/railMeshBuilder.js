@@ -1,5 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.183.0/build/three.module.js';
-import { CONFIG } from './config.js';
+import { COURSE_CONFIG as CONFIG } from './config/courseConfig.js';
 
 /**
  * 曲線に沿った左右レール点列を作ります。
@@ -121,38 +121,52 @@ function addSleepers(group, curve) {
   });
 
   const curveLength = curve.getLength();
-  const sleeperCount = Math.floor(curveLength / sleeperConfig.spacing);
+  const sleeperCount = Math.floor(curveLength / sleeperConfig.spacing) + 1;
+  const sleeperMesh = new THREE.InstancedMesh(
+    sleeperGeometry,
+    sleeperMaterial,
+    sleeperCount
+  );
+  sleeperMesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
 
-  for (let i = 0; i <= sleeperCount; i++) {
-    const u = sleeperCount === 0 ? 0 : i / sleeperCount;
+  const up = new THREE.Vector3(0, 1, 0);
+  const right = new THREE.Vector3();
+  const sleeperUp = new THREE.Vector3();
+  const position = new THREE.Vector3();
+  const quaternion = new THREE.Quaternion();
+  const basis = new THREE.Matrix4();
+  const matrix = new THREE.Matrix4();
+  const scale = new THREE.Vector3(1, 1, 1);
+
+  for (let i = 0; i < sleeperCount; i++) {
+    const u = sleeperCount === 1 ? 0 : i / (sleeperCount - 1);
     const point = curve.getPointAt(u);
     const tangent = curve.getTangentAt(u).normalize();
 
-    const sleeper = new THREE.Mesh(sleeperGeometry, sleeperMaterial);
-    sleeper.position.set(
+    position.set(
       point.x,
       point.y + railConfig.offsetY + sleeperConfig.offsetY,
       point.z
     );
 
-    const up = new THREE.Vector3(0, 1, 0);
-    let right = new THREE.Vector3().crossVectors(up, tangent);
+    right.crossVectors(up, tangent);
 
     if (right.lengthSq() < 1e-8) {
-      right = new THREE.Vector3(1, 0, 0);
+      right.set(1, 0, 0);
     } else {
       right.normalize();
     }
 
-    const sleeperUp = new THREE.Vector3()
-      .crossVectors(tangent, right)
-      .normalize();
+    sleeperUp.crossVectors(tangent, right).normalize();
 
-    const basis = new THREE.Matrix4().makeBasis(right, sleeperUp, tangent);
-    sleeper.quaternion.setFromRotationMatrix(basis);
-
-    group.add(sleeper);
+    basis.makeBasis(right, sleeperUp, tangent);
+    quaternion.setFromRotationMatrix(basis);
+    matrix.compose(position, quaternion, scale);
+    sleeperMesh.setMatrixAt(i, matrix);
   }
+
+  sleeperMesh.instanceMatrix.needsUpdate = true;
+  group.add(sleeperMesh);
 }
 
 /**

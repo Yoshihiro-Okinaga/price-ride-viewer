@@ -1,5 +1,6 @@
 import * as THREE from 'https://unpkg.com/three@0.183.0/build/three.module.js';
-import { CONFIG } from './config.js';
+import { COURSE_CONFIG as CONFIG } from './config/courseConfig.js';
+import { UI_CONFIG } from './config/uiConfig.js';
 import { app } from './state.js';
 import {
   disposeObject3D,
@@ -22,7 +23,7 @@ import { addRailsToGroup } from './railMeshBuilder.js';
  * @returns {string} テーマ表示名です。
  */
 function getThemeLabel(theme) {
-  const option = CONFIG.ui.themeOptions.find(item => item.value === theme);
+  const option = UI_CONFIG.themeOptions.find(item => item.value === theme);
   return option ? option.label : theme;
 }
 

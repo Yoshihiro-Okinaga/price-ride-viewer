@@ -1,5 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.183.0/build/three.module.js';
-import { CONFIG } from './config.js';
+import { COURSE_CONFIG as CONFIG } from './config/courseConfig.js';
 
 /**
  * キャンバス上に角丸矩形を描画します。
