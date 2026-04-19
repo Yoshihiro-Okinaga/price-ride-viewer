@@ -24,12 +24,34 @@ Load a CSV file, generate a 3D track from price movement, and explore it with di
 ```text
 Work/
 ├── src
-│   ├── config.js
+│   ├── config/
+│   │   ├── uiConfig.js
+│   │   ├── courseConfig.js
+│   │   └── sceneConfig.js
 │   ├── course.js
-│   ├── data.js
+│   ├── coursePointBuilder.js
+│   ├── csvDataRepository.js
+│   ├── appActions.js
+│   ├── appEvents.js
+│   ├── appLoop.js
 │   ├── main.js
 │   ├── scene.js
+│   ├── scenes/
+│   │   ├── themeAnimations/
+│   │   │   ├── spaceAnimation.js
+│   │   │   ├── amusementAnimation.js
+│   │   │   ├── futureCityAnimation.js
+│   │   │   └── heavenTempleAnimation.js
+│   │   └── themeBackgrounds/
+│   │       ├── spaceBackground.js
+│   │       ├── amusementBackground.js
+│   │       ├── analysisBackground.js
+│   │       ├── cityNightBackground.js
+│   │       ├── futureCityBackground.js
+│   │       └── heavenTempleBackground.js
 │   ├── state.js
+│   ├── railMeshBuilder.js
+│   ├── labelSpriteFactory.js
 │   ├── style.css
 │   ├── ui.js
 │   └── utils.js

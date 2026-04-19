@@ -1,5 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.183.0/build/three.module.js';
-import { CONFIG } from './config.js';
+import { UI_CONFIG } from './config/uiConfig.js';
 
 export const app = {
   scene: null,
@@ -28,19 +28,19 @@ export const app = {
   lastBuildInfo: null,
 
   buildSettings: {
-    startDateText: CONFIG.ui.initialValues.startDate,
-    heightScale: CONFIG.ui.initialValues.heightScale,
-    zStep: CONFIG.ui.initialValues.zStep,
-    autoScale: CONFIG.ui.initialValues.autoScale,
-    invertPrice: CONFIG.ui.initialValues.invertPrice,
-    theme: CONFIG.ui.initialValues.theme,
-    showHeightGuides: CONFIG.ui.initialValues.showHeightGuides,
+    startDateText: UI_CONFIG.initialValues.startDate,
+    heightScale: UI_CONFIG.initialValues.heightScale,
+    zStep: UI_CONFIG.initialValues.zStep,
+    autoScale: UI_CONFIG.initialValues.autoScale,
+    invertPrice: UI_CONFIG.initialValues.invertPrice,
+    theme: UI_CONFIG.initialValues.theme,
+    showHeightGuides: UI_CONFIG.initialValues.showHeightGuides,
     csvUrl: ''
   },
 
   runtimeSettings: {
-    rideSpeed: CONFIG.ui.initialValues.rideSpeed,
-    lookAhead: CONFIG.ui.initialValues.lookAhead
+    rideSpeed: UI_CONFIG.initialValues.rideSpeed,
+    lookAhead: UI_CONFIG.initialValues.lookAhead
   },
 
   lights: {
