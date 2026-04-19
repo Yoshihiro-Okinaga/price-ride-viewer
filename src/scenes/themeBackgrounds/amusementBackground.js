@@ -1,67 +1,3 @@
-function createAmusementLightPole(index, side, z, xOffset, heightFactor, deps) {
-  const { THREE, CONFIG, pseudoRandom, getArrayColor } = deps;
-  const refactor = CONFIG.sceneRefactor.amusement.lightPole;
-  const poleGroup = new THREE.Group();
-
-  const randA = pseudoRandom(
-    index * refactor.randAMultiplier +
-      (side < 0 ? refactor.leftSeedOffsetA : refactor.rightSeedOffsetA)
-  );
-  const randB = pseudoRandom(
-    index * refactor.randBMultiplier +
-      (side < 0 ? refactor.leftSeedOffsetB : refactor.rightSeedOffsetB)
-  );
-
-  const baseHeight = refactor.baseHeight + heightFactor * refactor.heightFactorMultiplier;
-  const randomScale = refactor.randomScaleBase + randA * refactor.randomScaleMultiplier;
-  const sideBias = side < 0 ? refactor.leftSideBias : refactor.rightSideBias;
-
-  let poleHeight = baseHeight * randomScale * sideBias;
-  poleHeight = Math.max(
-    refactor.minPoleHeight,
-    Math.min(
-      poleHeight,
-      refactor.maxPoleHeightBase + heightFactor * refactor.maxPoleHeightHeightFactor
-    )
-  );
-
-  const bulbRadius = Math.max(
-    refactor.minBulbRadius,
-    Math.min(
-      refactor.maxBulbRadius,
-      refactor.bulbRadiusBase +
-        heightFactor * refactor.bulbRadiusHeightFactor +
-        randB * refactor.bulbRadiusRandomMultiplier
-    )
-  );
-
-  const poleGeo = new THREE.CylinderGeometry(
-    refactor.poleRadiusTop,
-    refactor.poleRadiusBottom,
-    poleHeight,
-    refactor.poleRadialSegments
-  );
-  const poleMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-  const pole = new THREE.Mesh(poleGeo, poleMat);
-  pole.position.y = poleHeight / 2;
-  poleGroup.add(pole);
-
-  const bulbGeo = new THREE.SphereGeometry(
-    bulbRadius,
-    refactor.bulbWidthSegments,
-    refactor.bulbHeightSegments
-  );
-  const bulbMat = new THREE.MeshBasicMaterial({
-    color: getArrayColor(refactor.bulbColors, index, 0xffffff)
-  });
-  const bulb = new THREE.Mesh(bulbGeo, bulbMat);
-  bulb.position.y = poleHeight + bulbRadius * refactor.bulbYOffsetMultiplier;
-  poleGroup.add(bulb);
-
-  poleGroup.position.set(side * xOffset, 0, z);
-  return poleGroup;
-}
-
 function createTent(index, side, z, xOffset, heightFactor, deps) {
   const { THREE, CONFIG, getArrayColor } = deps;
   const refactor = CONFIG.sceneRefactor.amusement.tent;
@@ -149,6 +85,129 @@ function createFerrisWheel(z, x, heightFactor, deps) {
   return wheelGroup;
 }
 
+function createAmusementLightPoleInstances(laneCount, xOffset, heightFactor, deps) {
+  const { THREE, CONFIG, pseudoRandom, getArrayColor } = deps;
+  const refactor = CONFIG.sceneRefactor.amusement.lightPole;
+  const group = new THREE.Group();
+
+  const poleGeometry = new THREE.CylinderGeometry(
+    1,
+    1,
+    1,
+    refactor.poleRadialSegments
+  );
+  const poleMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const poleInstances = new THREE.InstancedMesh(poleGeometry, poleMaterial, laneCount * 2);
+  poleInstances.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+
+  const bulbGeometry = new THREE.SphereGeometry(
+    1,
+    refactor.bulbWidthSegments,
+    refactor.bulbHeightSegments
+  );
+
+  const bulbTransformsByColor = new Map();
+  for (const color of refactor.bulbColors) {
+    bulbTransformsByColor.set(color, []);
+  }
+  if (bulbTransformsByColor.size === 0) {
+    bulbTransformsByColor.set(0xffffff, []);
+  }
+
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const position = new THREE.Vector3();
+  const scale = new THREE.Vector3();
+
+  let poleIndex = 0;
+  for (let lane = 0; lane < laneCount; lane++) {
+    const z = CONFIG.sceneRefactor.amusement.skyline.laneStartZ +
+      lane * CONFIG.sceneRefactor.amusement.skyline.laneSpacing;
+
+    for (let sideIndex = 0; sideIndex < 2; sideIndex++) {
+      const side = sideIndex === 0 ? -1 : 1;
+      const index = lane * 2 + sideIndex;
+
+      const randA = pseudoRandom(
+        index * refactor.randAMultiplier +
+          (side < 0 ? refactor.leftSeedOffsetA : refactor.rightSeedOffsetA)
+      );
+      const randB = pseudoRandom(
+        index * refactor.randBMultiplier +
+          (side < 0 ? refactor.leftSeedOffsetB : refactor.rightSeedOffsetB)
+      );
+
+      const baseHeight = refactor.baseHeight + heightFactor * refactor.heightFactorMultiplier;
+      const randomScale = refactor.randomScaleBase + randA * refactor.randomScaleMultiplier;
+      const sideBias = side < 0 ? refactor.leftSideBias : refactor.rightSideBias;
+
+      let poleHeight = baseHeight * randomScale * sideBias;
+      poleHeight = Math.max(
+        refactor.minPoleHeight,
+        Math.min(
+          poleHeight,
+          refactor.maxPoleHeightBase + heightFactor * refactor.maxPoleHeightHeightFactor
+        )
+      );
+
+      const bulbRadius = Math.max(
+        refactor.minBulbRadius,
+        Math.min(
+          refactor.maxBulbRadius,
+          refactor.bulbRadiusBase +
+            heightFactor * refactor.bulbRadiusHeightFactor +
+            randB * refactor.bulbRadiusRandomMultiplier
+        )
+      );
+
+      position.set(side * xOffset, poleHeight / 2, z);
+      scale.set(refactor.poleRadiusTop, poleHeight, refactor.poleRadiusBottom);
+      matrix.compose(position, quaternion, scale);
+      poleInstances.setMatrixAt(poleIndex, matrix);
+      poleIndex += 1;
+
+      const bulbColor = getArrayColor(refactor.bulbColors, index, 0xffffff);
+      if (!bulbTransformsByColor.has(bulbColor)) {
+        bulbTransformsByColor.set(bulbColor, []);
+      }
+      bulbTransformsByColor.get(bulbColor).push({
+        x: side * xOffset,
+        y: poleHeight + bulbRadius * refactor.bulbYOffsetMultiplier,
+        z,
+        radius: bulbRadius
+      });
+    }
+  }
+
+  poleInstances.instanceMatrix.needsUpdate = true;
+  group.add(poleInstances);
+
+  for (const [color, transforms] of bulbTransformsByColor) {
+    if (transforms.length === 0) continue;
+
+    const bulbMaterial = new THREE.MeshBasicMaterial({ color });
+    const bulbInstances = new THREE.InstancedMesh(
+      bulbGeometry,
+      bulbMaterial,
+      transforms.length
+    );
+    bulbInstances.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+
+    for (let i = 0; i < transforms.length; i++) {
+      const transform = transforms[i];
+      position.set(transform.x, transform.y, transform.z);
+      scale.set(transform.radius, transform.radius, transform.radius);
+      matrix.compose(position, quaternion, scale);
+      bulbInstances.setMatrixAt(i, matrix);
+    }
+
+    bulbInstances.instanceMatrix.needsUpdate = true;
+    group.add(bulbInstances);
+  }
+
+  return group;
+}
+
 export function createAmusementSkyline(deps) {
   const { THREE, CONFIG, getBackgroundMetrics } = deps;
   const group = new THREE.Group();
@@ -161,11 +220,10 @@ export function createAmusementSkyline(deps) {
     Math.ceil((metrics.depth + refactor.laneCountDepthPadding) / refactor.laneSpacing)
   );
 
+  group.add(createAmusementLightPoleInstances(laneCount, sideX, metrics.heightFactor, deps));
+
   for (let lane = 0; lane < laneCount; lane++) {
     const z = refactor.laneStartZ + lane * refactor.laneSpacing;
-
-    group.add(createAmusementLightPole(lane * 2, -1, z, sideX, metrics.heightFactor, deps));
-    group.add(createAmusementLightPole(lane * 2 + 1, 1, z, sideX, metrics.heightFactor, deps));
 
     if (lane % refactor.leftTentEvery === 0) {
       group.add(

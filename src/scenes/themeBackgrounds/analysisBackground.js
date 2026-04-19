@@ -32,22 +32,74 @@ export function createAnalysisBackdrop({ THREE, CONFIG, getBackgroundMetrics }) 
     Math.ceil((metrics.depth + refactor.zCountDepthPadding) / refactor.zSpacing)
   );
 
+  const panelGeometry = new THREE.PlaneGeometry(panelWidth, panelHeight);
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const scale = new THREE.Vector3(1, 1, 1);
+  const position = new THREE.Vector3();
+
+  const buckets = {
+    evenStrong: [],
+    evenWeak: [],
+    oddStrong: [],
+    oddWeak: []
+  };
+
   for (let zi = 0; zi < zCount; zi++) {
     const z = refactor.zStart + zi * refactor.zSpacing;
 
     for (let yi = 0; yi < layerCount; yi++) {
-      const geo = new THREE.PlaneGeometry(panelWidth, panelHeight);
-      const mat = new THREE.MeshBasicMaterial({
-        color: (yi + zi) % 2 === 0 ? 0xdde7ff : 0xffffff,
-        transparent: true,
-        opacity: yi % 3 === 0 ? refactor.strongOpacity : refactor.weakOpacity,
-        depthWrite: false
-      });
+      position.set(0, yi * layerSpacingY, z);
+      matrix.compose(position, quaternion, scale);
 
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(0, yi * layerSpacingY, z);
-      group.add(mesh);
+      const isEvenColor = (yi + zi) % 2 === 0;
+      const isStrongOpacity = yi % 3 === 0;
+
+      if (isEvenColor && isStrongOpacity) {
+        buckets.evenStrong.push(matrix.clone());
+      } else if (isEvenColor && !isStrongOpacity) {
+        buckets.evenWeak.push(matrix.clone());
+      } else if (!isEvenColor && isStrongOpacity) {
+        buckets.oddStrong.push(matrix.clone());
+      } else {
+        buckets.oddWeak.push(matrix.clone());
+      }
     }
+  }
+
+  const bucketConfigs = [
+    { key: 'evenStrong', color: 0xdde7ff, opacity: refactor.strongOpacity },
+    { key: 'evenWeak', color: 0xdde7ff, opacity: refactor.weakOpacity },
+    { key: 'oddStrong', color: 0xffffff, opacity: refactor.strongOpacity },
+    { key: 'oddWeak', color: 0xffffff, opacity: refactor.weakOpacity }
+  ];
+
+  for (const config of bucketConfigs) {
+    const matrices = buckets[config.key];
+    if (matrices.length === 0) {
+      continue;
+    }
+
+    const material = new THREE.MeshBasicMaterial({
+      color: config.color,
+      transparent: true,
+      opacity: config.opacity,
+      depthWrite: false
+    });
+
+    const instances = new THREE.InstancedMesh(
+      panelGeometry,
+      material,
+      matrices.length
+    );
+    instances.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+
+    for (let i = 0; i < matrices.length; i++) {
+      instances.setMatrixAt(i, matrices[i]);
+    }
+
+    instances.instanceMatrix.needsUpdate = true;
+    group.add(instances);
   }
 
   return group;

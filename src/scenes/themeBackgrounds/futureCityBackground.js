@@ -34,21 +34,40 @@ function createFutureTower(seed, z, side, baseX, heightFactor, futureConfig, dep
 
   const cols = Math.max(2, Math.floor(width / 12));
   const rows = Math.max(6, Math.floor(height / 18));
+  const windowPositions = [];
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const randomGate = pseudoRandom(seed * 0.13 + row * 0.31 + col * 0.73);
       if (randomGate > towerConfig.windowSkipThreshold) continue;
 
-      const win = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 6.5), windowMat);
-
-      win.position.set(
+      windowPositions.push(new THREE.Vector3(
         x - width * 0.5 + 8 + col * ((width - 16) / Math.max(1, cols - 1)),
         10 + row * ((height - 20) / Math.max(1, rows - 1)),
         z + depth * 0.5 + 0.2
-      );
-      group.add(win);
+      ));
     }
+  }
+
+  if (windowPositions.length > 0) {
+    const windowGeometry = new THREE.PlaneGeometry(4.5, 6.5);
+    const windows = new THREE.InstancedMesh(
+      windowGeometry,
+      windowMat,
+      windowPositions.length
+    );
+    windows.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+
+    const matrix = new THREE.Matrix4();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3(1, 1, 1);
+    for (let i = 0; i < windowPositions.length; i++) {
+      matrix.compose(windowPositions[i], quaternion, scale);
+      windows.setMatrixAt(i, matrix);
+    }
+
+    windows.instanceMatrix.needsUpdate = true;
+    group.add(windows);
   }
 
   const rooftopRing = new THREE.Mesh(

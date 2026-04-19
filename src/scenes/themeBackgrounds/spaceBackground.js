@@ -106,31 +106,84 @@ function createSpaceOrbs(deps) {
   const group = new THREE.Group();
   const count = Math.max(refactor.minCount, Math.ceil(metrics.depth / refactor.countDepthDivisor));
 
+  const orbTransformsByColor = new Map();
+  for (const color of refactor.colors) {
+    orbTransformsByColor.set(color, []);
+  }
+  if (orbTransformsByColor.size === 0) {
+    orbTransformsByColor.set(0xffffff, []);
+  }
+
+  const orbSeeds = [];
+
   for (let i = 0; i < count; i++) {
     const radius =
       refactor.baseRadius +
       pseudoRandom(i + 500) * refactor.radiusRandomMultiplier +
       metrics.heightFactor * refactor.radiusHeightFactorMultiplier;
 
-    const geo = new THREE.SphereGeometry(radius, 20, 20);
-    const mat = new THREE.MeshBasicMaterial({
-      color: getArrayColor(refactor.colors, i, 0xffffff),
-      transparent: true,
-      opacity: refactor.baseOpacity + pseudoRandom(i + 501) * refactor.opacityRandomMultiplier
-    });
+    const color = getArrayColor(refactor.colors, i, 0xffffff);
+    const opacity = refactor.baseOpacity + pseudoRandom(i + 501) * refactor.opacityRandomMultiplier;
 
-    const orb = new THREE.Mesh(geo, mat);
-    orb.position.set(
-      (pseudoRandom(i + 502) - 0.5) *
+    orbTransformsByColor.get(color).push({
+      x: (pseudoRandom(i + 502) - 0.5) *
         Math.max(refactor.rangeXMin, metrics.width * refactor.rangeXWidthMultiplier),
-      refactor.baseY +
+      y: refactor.baseY +
         pseudoRandom(i + 503) *
           (metrics.maxY * refactor.yHeightMultiplier + refactor.yBasePadding),
-      refactor.startZ + i * (metrics.depth / Math.max(1, count - 1))
+      z: refactor.startZ + i * (metrics.depth / Math.max(1, count - 1)),
+      radius,
+      opacity,
+      seed: i
+    });
+
+    orbSeeds.push(i);
+  }
+
+  const baseGeometry = new THREE.SphereGeometry(1, 20, 20);
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const position = new THREE.Vector3();
+  const scale = new THREE.Vector3();
+
+  for (const [color, transforms] of orbTransformsByColor) {
+    if (transforms.length === 0) continue;
+
+    const material = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      depthTest: true,
+      depthWrite: false
+    });
+
+    const instances = new THREE.InstancedMesh(
+      baseGeometry,
+      material,
+      transforms.length
     );
-    orb.userData.floatSeed = i;
-    orb.userData.kind = 'spaceOrb';
-    group.add(orb);
+    instances.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+
+    for (let i = 0; i < transforms.length; i++) {
+      const transform = transforms[i];
+      position.set(transform.x, transform.y, transform.z);
+      scale.set(transform.radius, transform.radius, transform.radius);
+      matrix.compose(position, quaternion, scale);
+      instances.setMatrixAt(i, matrix);
+
+      instances.setColorAt(i, new THREE.Color(color));
+      if (instances.instanceColor) {
+        instances.instanceColor.setXYZ(i, 1, 1, 1);
+      }
+    }
+
+    instances.instanceMatrix.needsUpdate = true;
+    instances.userData.orbMeta = transforms.map(t => ({
+      seed: t.seed,
+      opacity: t.opacity
+    }));
+    instances.userData.kind = 'spaceOrbs';
+
+    group.add(instances);
   }
 
   return group;
@@ -218,6 +271,9 @@ function createCrystalCluster(deps) {
   const group = new THREE.Group();
   const count = Math.max(refactor.minCount, Math.ceil(metrics.depth / refactor.laneSpacing));
 
+  const leftCrystals = [];
+  const rightCrystals = [];
+
   for (let i = 0; i < count; i++) {
     const side = i % 2 === 0 ? -1 : 1;
     const height =
@@ -227,30 +283,66 @@ function createCrystalCluster(deps) {
     const radius =
       refactor.baseRadius + pseudoRandom(i + 711) * refactor.radiusRandomMultiplier;
 
-    const geo = new THREE.ConeGeometry(radius, height, refactor.radialSegments);
-    const mat = new THREE.MeshLambertMaterial({
-      color: i % 2 === 0 ? 0x8ef8ff : 0xf4a4ff,
-      emissive: i % 2 === 0 ? 0x144f55 : 0x4a143e,
+    const x = side *
+      Math.max(
+        refactor.xMin,
+        metrics.width *
+          (refactor.xWidthMultiplierBase +
+            pseudoRandom(i + 712) * refactor.xWidthMultiplierRandom)
+      );
+    const y = height / 2 - refactor.baseYAdjustment;
+    const z = refactor.startZ + i * refactor.laneSpacing;
+    const rotY = pseudoRandom(i + 713) * Math.PI * 2;
+
+    if (side < 0) {
+      leftCrystals.push({ x, y, z, height, radius, rotY });
+    } else {
+      rightCrystals.push({ x, y, z, height, radius, rotY });
+    }
+  }
+
+  const baseGeometry = new THREE.ConeGeometry(1, 1, refactor.radialSegments);
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const position = new THREE.Vector3();
+  const scale = new THREE.Vector3();
+
+  const createInstancesForColor = (crystals, color, emissive) => {
+    if (crystals.length === 0) return null;
+
+    const material = new THREE.MeshLambertMaterial({
+      color,
+      emissive,
       emissiveIntensity: refactor.emissiveIntensity,
       transparent: true,
       opacity: refactor.opacity
     });
 
-    const crystal = new THREE.Mesh(geo, mat);
-    crystal.position.set(
-      side *
-        Math.max(
-          refactor.xMin,
-          metrics.width *
-            (refactor.xWidthMultiplierBase +
-              pseudoRandom(i + 712) * refactor.xWidthMultiplierRandom)
-        ),
-      height / 2 - refactor.baseYAdjustment,
-      refactor.startZ + i * refactor.laneSpacing
+    const instances = new THREE.InstancedMesh(
+      baseGeometry,
+      material,
+      crystals.length
     );
-    crystal.rotation.y = pseudoRandom(i + 713) * Math.PI * 2;
-    group.add(crystal);
-  }
+    instances.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+
+    for (let i = 0; i < crystals.length; i++) {
+      const crystal = crystals[i];
+      position.set(crystal.x, crystal.y, crystal.z);
+      quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), crystal.rotY);
+      scale.set(crystal.radius, crystal.height, crystal.radius);
+      matrix.compose(position, quaternion, scale);
+      instances.setMatrixAt(i, matrix);
+    }
+
+    instances.instanceMatrix.needsUpdate = true;
+    return instances;
+  };
+
+  const leftInstances = createInstancesForColor(leftCrystals, 0x8ef8ff, 0x144f55);
+  const rightInstances = createInstancesForColor(rightCrystals, 0xf4a4ff, 0x4a143e);
+
+  if (leftInstances) group.add(leftInstances);
+  if (rightInstances) group.add(rightInstances);
 
   return group;
 }
