@@ -22,9 +22,32 @@ export function setupEvents(handlers) {
   };
 
   window.addEventListener('pointerdown', unlockFeedback, { once: true });
+  window.addEventListener('touchstart', unlockFeedback, { once: true, passive: true });
+  window.addEventListener('touchend', unlockFeedback, { once: true, passive: true });
+  window.addEventListener('click', unlockFeedback, { once: true });
   window.addEventListener('keydown', unlockFeedback, { once: true });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      unlockFeedback();
+    }
+  });
 
-  ui.buildButton.addEventListener('click', handlers.onBuildButtonClick);
+  if (app.renderer?.xr) {
+    app.renderer.xr.addEventListener('sessionstart', () => {
+      unlockFeedback();
+
+      const session = app.renderer.xr.getSession?.();
+
+      if (session) {
+        session.addEventListener('selectstart', unlockFeedback);
+      }
+    });
+  }
+
+  ui.buildButton.addEventListener('click', async () => {
+    unlockFeedback();
+    await handlers.onBuildButtonClick();
+  });
 
   ui.csvSelect.addEventListener('change', async () => {
     await handlers.onRefreshAutoScalePreview();

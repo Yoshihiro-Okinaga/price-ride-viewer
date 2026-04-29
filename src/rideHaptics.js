@@ -1,3 +1,5 @@
+import { app } from './state.js';
+
 let xboxHid = null;
 let hasInitializedHid = false;
 let requestDeviceTried = false;
@@ -35,6 +37,24 @@ function getPrimaryGamepad() {
   }
 
   return null;
+}
+
+function getXrInputSourceGamepads() {
+  const session = app.renderer?.xr?.getSession?.();
+
+  if (!session?.inputSources) {
+    return [];
+  }
+
+  const gamepads = [];
+
+  for (const inputSource of session.inputSources) {
+    if (inputSource?.gamepad) {
+      gamepads.push(inputSource.gamepad);
+    }
+  }
+
+  return gamepads;
 }
 
 async function tryOpenXboxFromDevices(devices) {
@@ -85,37 +105,45 @@ async function initializeXboxHid() {
 }
 
 async function pulseGamepadHaptics(strongMagnitude, weakMagnitude, durationMs) {
-  const gamepad = getPrimaryGamepad();
+  const candidates = [
+    ...getXrInputSourceGamepads(),
+    getPrimaryGamepad()
+  ].filter(Boolean);
 
-  if (!gamepad) {
+  if (candidates.length === 0) {
     return false;
   }
 
-  if (gamepad.hapticActuators && gamepad.hapticActuators[0]) {
-    try {
-      const pulseAmount = clamp(strongMagnitude * 0.7 + weakMagnitude * 0.3, 0, 1);
-      await gamepad.hapticActuators[0].pulse(pulseAmount, durationMs);
-      return true;
-    } catch {
-      // 次の方式へフォールバックします。
+  let pulsed = false;
+
+  for (const gamepad of candidates) {
+    if (gamepad.hapticActuators && gamepad.hapticActuators[0]) {
+      try {
+        const pulseAmount = clamp(strongMagnitude * 0.7 + weakMagnitude * 0.3, 0, 1);
+        await gamepad.hapticActuators[0].pulse(pulseAmount, durationMs);
+        pulsed = true;
+        continue;
+      } catch {
+        // 次の方式へフォールバックします。
+      }
+    }
+
+    if (gamepad.vibrationActuator) {
+      try {
+        await gamepad.vibrationActuator.playEffect('dual-rumble', {
+          startDelay: 0,
+          duration: durationMs,
+          strongMagnitude,
+          weakMagnitude
+        });
+        pulsed = true;
+      } catch {
+        // 次の方式へフォールバックします。
+      }
     }
   }
 
-  if (gamepad.vibrationActuator) {
-    try {
-      await gamepad.vibrationActuator.playEffect('dual-rumble', {
-        startDelay: 0,
-        duration: durationMs,
-        strongMagnitude,
-        weakMagnitude
-      });
-      return true;
-    } catch {
-      // 次の方式へフォールバックします。
-    }
-  }
-
-  return false;
+  return pulsed;
 }
 
 async function pulseXboxHid(strongMagnitude, weakMagnitude, durationMs) {

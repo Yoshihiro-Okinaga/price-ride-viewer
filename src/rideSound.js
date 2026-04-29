@@ -7,6 +7,7 @@ let windSource = null;
 let windFilter = null;
 let windGain = null;
 let masterGain = null;
+let hasPrimedGesture = false;
 
 const soundState = {
   intensity: 0,
@@ -93,16 +94,33 @@ export async function primeRideSound() {
     return;
   }
 
-  if (audioCtx.state === 'suspended') {
+  if (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted') {
     try {
       await audioCtx.resume();
     } catch {
       // ユーザー操作のタイミングで再試行されます。
     }
   }
+
+  // iOS Safari は resume だけでは出音しない場合があるため、
+  // ユーザー操作内で短い無音バッファを一度だけ再生して経路を確実に開きます。
+  if (!hasPrimedGesture && audioCtx.state === 'running') {
+    try {
+      const unlockBuffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+      const unlockSource = audioCtx.createBufferSource();
+      unlockSource.buffer = unlockBuffer;
+      unlockSource.connect(audioCtx.destination);
+      unlockSource.start(0);
+      hasPrimedGesture = true;
+    } catch {
+      // 失敗しても次のジェスチャーで再試行されます。
+    }
+  }
 }
 
 export function updateRideSound({ deltaY = 0, deltaTime = 1 / 60, rideSpeed = 0, isActive = false } = {}) {
+  ensureAudioGraph();
+
   if (!audioCtx || !rumbleOsc || !rushOsc || !windFilter) {
     return;
   }
