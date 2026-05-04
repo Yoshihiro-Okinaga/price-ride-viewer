@@ -138,23 +138,23 @@ export const SCENE_CONFIG = {
       },
 
       analysis: {
-        sceneBackground: 0xffffff,
-        fogColor: 0xffffff,
-        fogDensity: 0.00001,
+        sceneBackground: 0x060d1a,
+        fogColor: 0x081220,
+        fogDensity: 0.00012,
         ground: {
           opacity: 1.0,
-          backgroundColor: '#eeeeee',
-          gradTop: 'rgba(0,0,0,0.00)',
+          backgroundColor: '#060e1c',
+          gradTop: 'rgba(30,100,200,0.10)',
           gradMid: 'rgba(0,0,0,0.00)',
-          gradBottom: 'rgba(0,0,0,0.00)',
-          gridColor: 'rgba(0,0,255,0.35)',
+          gradBottom: 'rgba(0,60,140,0.12)',
+          gridColor: 'rgba(26,80,128,0.70)',
           glowDotColor: 'rgba(0,0,0,0.00)',
-          cells: 18
+          cells: 16
         },
         lighting: {
-          directional: { color: 0xffffff, intensity: 1.0 },
-          ambient: { color: 0xffffff, intensity: 1.2 },
-          point: { color: 0xffffff, intensity: 0.0 }
+          directional: { color: 0xaaccff, intensity: 0.6 },
+          ambient: { color: 0x8aaedd, intensity: 0.8 },
+          point: { color: 0x44aaff, intensity: 0.0 }
         },
         backgroundKind: 'analysis',
         guideColor: 0x0000ff,
