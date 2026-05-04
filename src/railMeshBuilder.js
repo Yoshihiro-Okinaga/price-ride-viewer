@@ -1,6 +1,25 @@
 import * as THREE from 'https://unpkg.com/three@0.183.0/build/three.module.js';
 import { COURSE_CONFIG as CONFIG } from './config/courseConfig.js';
 
+function buildCurveFromPoints(points, buildSettings) {
+  if (buildSettings.interpolationMode === 'none') {
+    const curvePath = new THREE.CurvePath();
+
+    for (let i = 0; i < points.length - 1; i += 1) {
+      curvePath.add(new THREE.LineCurve3(points[i], points[i + 1]));
+    }
+
+    return curvePath;
+  }
+
+  return new THREE.CatmullRomCurve3(
+    points,
+    false,
+    buildSettings.curveType,
+    buildSettings.curveTension
+  );
+}
+
 /**
  * 曲線に沿った左右レール点列を作ります。
  * @param {THREE.Curve} curve 対象曲線です。
@@ -174,8 +193,9 @@ function addSleepers(group, curve) {
  * @param {THREE.Group} group 追加先グループです。
  * @param {THREE.Curve} curve 中央曲線です。
  * @param {number} pointCount 元のポイント数です。
+ * @param {object} buildSettings ビルド設定です。
  */
-export function addRailsToGroup(group, curve, pointCount) {
+export function addRailsToGroup(group, curve, pointCount, buildSettings) {
   const railConfig = CONFIG.rail;
   const divisions = Math.max(
     railConfig.divisionsMin,
@@ -184,19 +204,8 @@ export function addRailsToGroup(group, curve, pointCount) {
 
   const { leftPoints, rightPoints } = buildRailSidePoints(curve, divisions);
 
-  const leftCurve = new THREE.CatmullRomCurve3(
-    leftPoints,
-    false,
-    CONFIG.course.curveType,
-    CONFIG.course.curveTension
-  );
-
-  const rightCurve = new THREE.CatmullRomCurve3(
-    rightPoints,
-    false,
-    CONFIG.course.curveType,
-    CONFIG.course.curveTension
-  );
+  const leftCurve = buildCurveFromPoints(leftPoints, buildSettings);
+  const rightCurve = buildCurveFromPoints(rightPoints, buildSettings);
 
   addRailMeshes(group, leftCurve, rightCurve, divisions);
   addSleepers(group, curve);

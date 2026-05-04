@@ -27,6 +27,11 @@ function getThemeLabel(theme) {
   return option ? option.label : theme;
 }
 
+function getInterpolationModeLabel(mode) {
+  const option = UI_CONFIG.interpolationModeOptions.find(item => item.value === mode);
+  return option ? option.label : mode;
+}
+
 /**
  * ポイント配列内の最大Y値を取得します。
  * @param {THREE.Vector3[]} points コース点配列です。
@@ -97,18 +102,29 @@ export function resetCourseGroup() {
 /**
  * ポイント列から滑らかな曲線を生成します。
  * @param {THREE.Vector3[]} points コース点配列です。
- * @returns {THREE.CatmullRomCurve3} 生成した曲線です。
+ * @param {object} buildSettings ビルド設定です。
+ * @returns {THREE.Curve} 生成した曲線です。
  */
-export function buildSmoothCurve(points) {
+export function buildSmoothCurve(points, buildSettings) {
   if (points.length < 2) {
     throw new Error('曲線を作るための点が不足しています。');
+  }
+
+  if (buildSettings.interpolationMode === 'none') {
+    const curvePath = new THREE.CurvePath();
+
+    for (let i = 0; i < points.length - 1; i += 1) {
+      curvePath.add(new THREE.LineCurve3(points[i], points[i + 1]));
+    }
+
+    return curvePath;
   }
 
   return new THREE.CatmullRomCurve3(
     points,
     false,
-    CONFIG.course.curveType,
-    CONFIG.course.curveTension
+    buildSettings.curveType,
+    buildSettings.curveTension
   );
 }
 
@@ -184,9 +200,10 @@ export function addMonthlyLabels(points, prices, rows, buildSettings, minClose, 
  * @param {THREE.Curve} curve 対象の曲線です。
  * @param {THREE.Group} courseGroup 追加先グループです。
  * @param {number} pointCount コース点数です。
+ * @param {object} buildSettings ビルド設定です。
  */
-export function buildCourseMeshes(curve, courseGroup, pointCount) {
-  addRailsToGroup(courseGroup, curve, pointCount);
+export function buildCourseMeshes(curve, courseGroup, pointCount, buildSettings) {
+  addRailsToGroup(courseGroup, curve, pointCount, buildSettings);
 }
 
 /**
@@ -327,7 +344,7 @@ async function prepareCourseBuildData(buildSettings) {
   const { points, prices, baseClose, minClose, maxClose } =
     buildCoursePoints(filteredRows, resolvedBuildSettings);
 
-  const curve = buildSmoothCurve(points);
+  const curve = buildSmoothCurve(points, resolvedBuildSettings);
 
   return {
     buildSettings: resolvedBuildSettings,
@@ -377,6 +394,9 @@ function createLastBuildInfo(prepared) {
     maxClose: prepared.maxClose,
     heightScale: prepared.buildSettings.heightScale,
     zStep: prepared.buildSettings.zStep,
+    interpolationModeLabel: getInterpolationModeLabel(prepared.buildSettings.interpolationMode),
+    curveType: prepared.buildSettings.curveType,
+    curveTension: prepared.buildSettings.curveTension,
     maxY,
     groundWidth: groundSize.width,
     groundDepth: groundSize.depth,
@@ -402,7 +422,12 @@ export async function buildCourse(buildSettings) {
   const prepared = await prepareCourseBuildData(buildSettings);
   applyCourseBuildResult(prepared);
 
-  buildCourseMeshes(app.curve, app.courseGroup, app.coursePoints.length);
+  buildCourseMeshes(
+    app.curve,
+    app.courseGroup,
+    app.coursePoints.length,
+    prepared.buildSettings
+  );
   addMonthlyLabels(
     prepared.points,
     prepared.prices,

@@ -18,6 +18,15 @@ export const ui = {
   zStepLabel: document.getElementById('zStepLabel'),
   zStepInput: document.getElementById('zStep'),
 
+  interpolationModeLabel: document.getElementById('interpolationModeLabel'),
+  interpolationModeSelect: document.getElementById('interpolationMode'),
+
+  curveTypeLabel: document.getElementById('curveTypeLabel'),
+  curveTypeSelect: document.getElementById('curveType'),
+
+  curveTensionLabel: document.getElementById('curveTensionLabel'),
+  curveTensionInput: document.getElementById('curveTension'),
+
   autoScaleLabel: document.getElementById('autoScaleLabel'),
   autoScaleLabelText: document.querySelector('#autoScaleLabel span'),
   autoScaleInput: document.getElementById('autoScale'),
@@ -93,6 +102,22 @@ function populateThemeOptions() {
   }
 }
 
+function populateInterpolationModeOptions() {
+  ui.interpolationModeSelect.innerHTML = '';
+
+  for (const item of UI_CONFIG.interpolationModeOptions) {
+    ui.interpolationModeSelect.appendChild(createOption(item.value, item.label));
+  }
+}
+
+function populateCurveTypeOptions() {
+  ui.curveTypeSelect.innerHTML = '';
+
+  for (const item of UI_CONFIG.curveTypeOptions) {
+    ui.curveTypeSelect.appendChild(createOption(item.value, item.label));
+  }
+}
+
 export function setStatus(text) {
   ui.status.textContent = text;
 }
@@ -116,6 +141,9 @@ export function getBuildSettingsFromUI() {
     startDateText: ui.startDateInput.value.trim(),
     heightScale: readNumber(ui.heightScaleInput, validation.invalidHeightScale),
     zStep: readNumber(ui.zStepInput, validation.invalidZStep),
+    interpolationMode: ui.interpolationModeSelect.value,
+    curveType: ui.curveTypeSelect.value,
+    curveTension: readNumber(ui.curveTensionInput, validation.invalidCurveTension),
     autoScale: ui.autoScaleInput.checked,
     invertPrice: ui.invertPriceInput.checked,
     theme: ui.themeSelect.value,
@@ -133,6 +161,10 @@ export function getBuildSettingsFromUI() {
 
   if (settings.heightScale <= 0) {
     throw new Error(validation.nonPositiveHeightScale);
+  }
+
+  if (settings.curveTension < 0) {
+    throw new Error(validation.invalidCurveTension);
   }
 
   return settings;
@@ -172,6 +204,9 @@ export function applyUiConfigToDom() {
   ui.startDateLabel.textContent = text.startDateLabel;
   ui.heightScaleLabel.textContent = text.heightScaleLabel;
   ui.zStepLabel.textContent = text.zStepLabel;
+  ui.interpolationModeLabel.textContent = text.interpolationModeLabel;
+  ui.curveTypeLabel.textContent = text.curveTypeLabel;
+  ui.curveTensionLabel.textContent = text.curveTensionLabel;
   ui.rideSpeedLabel.textContent = text.rideSpeedLabel;
   ui.lookAheadLabel.textContent = text.lookAheadLabel;
   ui.themeLabel.textContent = text.themeLabel;
@@ -192,12 +227,18 @@ export function applyUiConfigToDom() {
 
   populateCsvOptions();
   populateThemeOptions();
+  populateInterpolationModeOptions();
+  populateCurveTypeOptions();
 
   ui.startDateInput.value = initial.startDate;
   ui.heightScaleInput.value = String(initial.heightScale);
   ui.heightScaleInput.step = String(initial.heightScaleStep);
   ui.zStepInput.value = String(initial.zStep);
   ui.zStepInput.step = String(initial.zStepStep);
+  ui.interpolationModeSelect.value = initial.interpolationMode;
+  ui.curveTypeSelect.value = initial.curveType;
+  ui.curveTensionInput.value = String(initial.curveTension);
+  ui.curveTensionInput.step = String(initial.curveTensionStep);
   ui.autoScaleInput.checked = initial.autoScale;
   ui.rideSpeedInput.value = String(initial.rideSpeed);
   ui.rideSpeedInput.step = String(initial.rideSpeedStep);
@@ -235,6 +276,9 @@ export function updateStatus(lastBuildInfo, runtimeSettings) {
     `${text.baseCloseHigh}: ${info.maxClose.toFixed(format.priceDecimals)}`,
     `高さ倍率: ${info.heightScale}`,
     `Z間隔: ${info.zStep}`,
+    `補間方式: ${info.interpolationModeLabel}`,
+    `カーブタイプ: ${info.curveType}`,
+    `テンション: ${info.curveTension}`,
     `最大Y: ${info.maxY.toFixed(format.maxYDecimals)}`,
     `地面: ${info.groundWidth} × ${info.groundDepth}`,
     `自動調整: ${info.autoScale ? text.autoScaleOn : text.autoScaleOff}`,

@@ -21,6 +21,9 @@ export const UI_CONFIG = {
     startDateLabel: '開始日',
     heightScaleLabel: '高さの拡大率（終値差分 × この値）',
     zStepLabel: 'Z方向の間隔',
+    interpolationModeLabel: '補間方式',
+    curveTypeLabel: 'Catmull-Romタイプ',
+    curveTensionLabel: 'Catmull-Romテンション',
     autoScaleLabel: '高さ・Z間隔を自動調整',
     rideSpeedLabel: '移動速度',
     lookAheadLabel: '視線の先読み量',
@@ -33,6 +36,7 @@ export const UI_CONFIG = {
   validationMessage: {
     invalidHeightScale: '高さの拡大率が不正です。',
     invalidZStep: 'Z方向の間隔が不正です。',
+    invalidCurveTension: 'Catmull-Romテンションが不正です。',
     missingCsv: 'CSVファイルを選択してください。',
     nonPositiveZStep: 'Z方向の間隔は 0 より大きい必要があります。',
     nonPositiveHeightScale: '高さの拡大率は 0 より大きい必要があります。'
@@ -49,6 +53,10 @@ export const UI_CONFIG = {
     heightScaleStep: 100,
     zStep: 80,
     zStepStep: 1,
+    interpolationMode: 'catmullrom',
+    curveType: 'catmullrom',
+    curveTension: 0.35,
+    curveTensionStep: 0.01,
     autoScale: true,
     rideSpeed: 0.02,
     rideSpeedStep: 0.01,
@@ -66,6 +74,17 @@ export const UI_CONFIG = {
     { value: 'cityNight', label: '都会の夜景' },
     { value: 'futureCity', label: '未来都市' },
     { value: 'heavenTemple', label: '天界神殿' }
+  ],
+
+  interpolationModeOptions: [
+    { value: 'catmullrom', label: 'Catmull-Rom（補間あり）' },
+    { value: 'none', label: '補間なし（折れ線）' }
+  ],
+
+  curveTypeOptions: [
+    { value: 'catmullrom', label: 'catmullrom' },
+    { value: 'centripetal', label: 'centripetal' },
+    { value: 'chordal', label: 'chordal' }
   ],
 
   csvOptions: [
