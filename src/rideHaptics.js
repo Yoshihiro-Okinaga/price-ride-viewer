@@ -117,26 +117,44 @@ async function pulseGamepadHaptics(strongMagnitude, weakMagnitude, durationMs) {
   let pulsed = false;
 
   for (const gamepad of candidates) {
-    if (gamepad.hapticActuators && gamepad.hapticActuators[0]) {
-      try {
-        const pulseAmount = clamp(strongMagnitude * 0.7 + weakMagnitude * 0.3, 0, 1);
-        await gamepad.hapticActuators[0].pulse(pulseAmount, durationMs);
-        pulsed = true;
+    if (gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
+      for (const actuator of gamepad.hapticActuators) {
+        if (!actuator?.pulse) {
+          continue;
+        }
+
+        try {
+          const pulseAmount = clamp(strongMagnitude * 0.7 + weakMagnitude * 0.3, 0, 1);
+          const accepted = await actuator.pulse(pulseAmount, durationMs);
+
+          // pulse() は Promise<boolean> を返すため、false の場合は未実行として扱います。
+          if (accepted === true) {
+            pulsed = true;
+            break;
+          }
+        } catch {
+          // 次の方式へフォールバックします。
+        }
+      }
+
+      if (pulsed) {
         continue;
-      } catch {
-        // 次の方式へフォールバックします。
       }
     }
 
     if (gamepad.vibrationActuator) {
       try {
-        await gamepad.vibrationActuator.playEffect('dual-rumble', {
+        const accepted = await gamepad.vibrationActuator.playEffect('dual-rumble', {
           startDelay: 0,
           duration: durationMs,
           strongMagnitude,
           weakMagnitude
         });
-        pulsed = true;
+
+        // 実装差分で true 以外を返す場合があるため、false のときのみ失敗扱いにします。
+        if (accepted !== false) {
+          pulsed = true;
+        }
       } catch {
         // 次の方式へフォールバックします。
       }
