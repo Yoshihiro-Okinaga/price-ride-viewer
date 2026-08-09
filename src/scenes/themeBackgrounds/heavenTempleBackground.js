@@ -1,467 +1,597 @@
-function createHeavenTempleIsland(seed, z, side, baseX, heightFactor, heavenConfig, deps) {
+// ============================================================================
+//  Fallen Sky-City  ―  崩壊した天空都市
+//  かつて神殿だった浮遊島が砕け、露出した構造フレーム・瓦礫・エネルギー亀裂・
+//  グリッチするホログラム・立ち昇る火の粉が、ネオンと残光に照らされる背景。
+//
+//  ※ テーマ識別子 'heavenTemple' / export 名はそのまま維持しているため
+//     scene.js / uiConfig.js は無変更で差し替え可能です。
+// ============================================================================
+
+/**
+ * 露出した構造フレーム（島の裏側からぶら下がる支柱と格子）を作ります。
+ */
+function createExposedFrame(seed, radiusTop, thickness, y, ruinConfig, deps) {
+  const { THREE, pseudoRandom } = deps;
+  const frameConfig = ruinConfig.frame;
+  const group = new THREE.Group();
+
+  const strutMat = new THREE.MeshStandardMaterial({
+    color: frameConfig.color,
+    emissive: frameConfig.emissive,
+    emissiveIntensity: frameConfig.emissiveIntensity,
+    metalness: 0.9,
+    roughness: 0.4
+  });
+
+  // 島の底からぶら下がる縦支柱（折れた残骸のように長さバラバラ）
+  for (let i = 0; i < frameConfig.strutCount; i++) {
+    const angle = (i / frameConfig.strutCount) * Math.PI * 2;
+    const r = radiusTop * frameConfig.strutRadiusRatio;
+    const len =
+      frameConfig.strutLengthBase +
+      pseudoRandom(seed + i * 0.37) * frameConfig.strutLengthRandom;
+
+    const strut = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        frameConfig.strutRadius,
+        frameConfig.strutRadius * 0.4,
+        len,
+        5
+      ),
+      strutMat
+    );
+    strut.position.set(
+      Math.cos(angle) * r,
+      y - thickness * 0.5 - len * 0.5,
+      Math.sin(angle) * r
+    );
+    strut.rotation.z = (pseudoRandom(seed + i * 0.7) - 0.5) * frameConfig.strutTilt;
+    strut.rotation.x = (pseudoRandom(seed + i * 0.9) - 0.5) * frameConfig.strutTilt;
+    group.add(strut);
+  }
+
+  // 露出した発光リング（構造が引きちぎれた断面の光）
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(radiusTop * frameConfig.ringRadiusRatio, 0.9, 8, 22),
+    new THREE.MeshBasicMaterial({
+      color: frameConfig.ringColor,
+      transparent: true,
+      opacity: frameConfig.ringOpacity,
+      depthWrite: false
+    })
+  );
+  ring.rotation.x = Math.PI * 0.5;
+  ring.position.set(0, y - thickness * 0.5, 0);
+  ring.userData.kind = 'ruinFracture';
+  ring.userData.pulseSeed = seed * 0.31;
+  ring.userData.baseOpacity = frameConfig.ringOpacity;
+  group.add(ring);
+
+  return group;
+}
+
+/**
+ * 崩れかけたネオンの尖塔を作ります（傾き＋破断した頂部＋赤い警告灯）。
+ */
+function createRuinSpire(seed, baseY, ruinConfig, deps) {
+  const { THREE, pseudoRandom, getArrayColor } = deps;
+  const spireConfig = ruinConfig.spire;
+  const group = new THREE.Group();
+
+  const height =
+    spireConfig.heightBase + pseudoRandom(seed + 0.13) * spireConfig.heightRandom;
+  const width = spireConfig.widthBase + pseudoRandom(seed + 0.17) * spireConfig.widthRandom;
+
+  // 本体（暗いスレート＋わずかな発光）
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(width, height, width),
+    new THREE.MeshStandardMaterial({
+      color: spireConfig.bodyColor,
+      emissive: spireConfig.bodyEmissive,
+      emissiveIntensity: spireConfig.bodyEmissiveIntensity,
+      metalness: 0.8,
+      roughness: 0.5
+    })
+  );
+  body.position.set(0, baseY + height * 0.5, 0);
+  group.add(body);
+
+  // 破断した頂部（斜めに傾いた小ブロック）
+  const brokenTop = new THREE.Mesh(
+    new THREE.BoxGeometry(width * 0.9, height * 0.22, width * 0.9),
+    body.material
+  );
+  brokenTop.position.set(
+    width * spireConfig.topShift,
+    baseY + height + height * 0.09,
+    width * spireConfig.topShift * 0.6
+  );
+  brokenTop.rotation.z = spireConfig.topTilt;
+  brokenTop.rotation.x = spireConfig.topTilt * 0.5;
+  group.add(brokenTop);
+
+  // ネオンの縦エッジ（シアン／マゼンタを交互）
+  const edgeColor = getArrayColor(spireConfig.edgeColors, seed, 0x22e6ff);
+  const edgeMat = new THREE.MeshBasicMaterial({
+    color: edgeColor,
+    transparent: true,
+    opacity: spireConfig.edgeOpacity
+  });
+  const edgeGeo = new THREE.BoxGeometry(spireConfig.edgeThickness, height, spireConfig.edgeThickness);
+  for (let i = 0; i < 4; i++) {
+    const sx = i < 2 ? -1 : 1;
+    const sz = i % 2 === 0 ? -1 : 1;
+    const edge = new THREE.Mesh(edgeGeo, edgeMat);
+    edge.position.set(sx * width * 0.5, baseY + height * 0.5, sz * width * 0.5);
+    edge.userData.kind = 'ruinSpireGlow';
+    edge.userData.pulseSeed = seed * 0.29 + i * 0.4;
+    edge.userData.baseOpacity = spireConfig.edgeOpacity;
+    group.add(edge);
+  }
+
+  // 赤い警告灯（頂部で明滅）
+  const beacon = new THREE.Mesh(
+    new THREE.SphereGeometry(spireConfig.beaconRadius, 10, 10),
+    new THREE.MeshBasicMaterial({
+      color: spireConfig.beaconColor,
+      transparent: true,
+      opacity: spireConfig.beaconOpacity
+    })
+  );
+  beacon.position.set(0, baseY + height + spireConfig.beaconYOffset, 0);
+  beacon.userData.kind = 'ruinBeacon';
+  beacon.userData.blinkSeed = seed * 0.53;
+  beacon.userData.baseOpacity = spireConfig.beaconOpacity;
+  group.add(beacon);
+
+  const beaconHalo = new THREE.Mesh(
+    new THREE.SphereGeometry(spireConfig.beaconRadius * 2.4, 8, 8),
+    new THREE.MeshBasicMaterial({
+      color: spireConfig.beaconColor,
+      transparent: true,
+      opacity: spireConfig.beaconOpacity * 0.35,
+      depthWrite: false
+    })
+  );
+  beaconHalo.position.copy(beacon.position);
+  beaconHalo.userData.kind = 'ruinBeacon';
+  beaconHalo.userData.blinkSeed = seed * 0.53 + 0.5;
+  beaconHalo.userData.baseOpacity = spireConfig.beaconOpacity * 0.35;
+  group.add(beaconHalo);
+
+  return group;
+}
+
+/**
+ * 砕けて傾いた浮遊島（＋露出フレーム＋尖塔＋浮遊コア）を作ります。
+ */
+function createRuinIsland(seed, z, side, baseX, heightFactor, ruinConfig, deps) {
   const { THREE, pseudoRandom } = deps;
   const group = new THREE.Group();
-  const islandConfig = heavenConfig.island;
-  const templeConfig = heavenConfig.temple;
+  const islandConfig = ruinConfig.island;
+  const coreConfig = ruinConfig.core;
 
   const radiusTop = islandConfig.radiusTopBase + pseudoRandom(seed + 0.1) * islandConfig.radiusTopRandom;
-  const radiusBottom = islandConfig.radiusBottomBase + pseudoRandom(seed + 0.2) * islandConfig.radiusBottomRandom;
+  const radiusBottom = radiusTop * islandConfig.bottomRatio;
   const thickness = islandConfig.thicknessBase + pseudoRandom(seed + 0.3) * islandConfig.thicknessRandom;
-  const y = islandConfig.yBase + heightFactor * islandConfig.yHeightFactorMultiplier + pseudoRandom(seed + 0.4) * 12;
-  const x = side * (baseX + pseudoRandom(seed + 0.5) * 100);
+  const y = islandConfig.yBase + heightFactor * islandConfig.yHeightFactorMultiplier + pseudoRandom(seed + 0.4) * 24;
+  const x = side * (baseX + pseudoRandom(seed + 0.5) * 110);
 
+  // 島本体（低ポリの岩塊＝破壊感）。傾けて「崩れかけ」を表現。
   const rock = new THREE.Mesh(
-    new THREE.CylinderGeometry(radiusTop, radiusBottom, thickness, 10),
+    new THREE.CylinderGeometry(radiusTop, radiusBottom, thickness, 6, 1),
     new THREE.MeshStandardMaterial({
       color: islandConfig.rockColor,
       emissive: islandConfig.rockEmissive,
       emissiveIntensity: islandConfig.rockEmissiveIntensity,
-      roughness: 0.85,
-      metalness: 0.1
+      roughness: 0.9,
+      metalness: 0.12,
+      flatShading: true
     })
   );
   rock.position.set(0, y, 0);
+  rock.rotation.z = (pseudoRandom(seed + 0.61) - 0.5) * islandConfig.tilt;
+  rock.rotation.x = (pseudoRandom(seed + 0.62) - 0.5) * islandConfig.tilt;
   group.add(rock);
 
-  const topPlate = new THREE.Mesh(
-    new THREE.CylinderGeometry(radiusTop * 0.98, radiusTop * 0.98, 4, 20),
-    new THREE.MeshStandardMaterial({
-      color: islandConfig.topColor,
-      emissive: islandConfig.topEmissive,
-      emissiveIntensity: islandConfig.topEmissiveIntensity,
-      roughness: 0.45,
-      metalness: 0.2
-    })
-  );
-  topPlate.position.set(0, y + thickness * 0.5, 0);
-  group.add(topPlate);
-
-  const rim = new THREE.Mesh(
-    new THREE.TorusGeometry(radiusTop * 0.95, 0.7, 10, 28),
-    new THREE.MeshBasicMaterial({
-      color: islandConfig.rimColor,
-      transparent: true,
-      opacity: islandConfig.rimOpacity,
-      depthWrite: false
-    })
-  );
-  rim.rotation.x = Math.PI * 0.5;
-  rim.position.set(0, y + thickness * 0.5 + 2.2, 0);
-  rim.userData.kind = 'heavenRim';
-  rim.userData.pulseSeed = seed * 0.37;
-  rim.userData.baseOpacity = islandConfig.rimOpacity;
-  group.add(rim);
-
-  const templeBase = new THREE.Mesh(
-    new THREE.BoxGeometry(templeConfig.baseWidth, templeConfig.baseHeight, templeConfig.baseDepth),
-    new THREE.MeshStandardMaterial({
-      color: templeConfig.baseColor,
-      roughness: 0.35,
-      metalness: 0.1
-    })
-  );
-  templeBase.position.set(0, y + thickness * 0.5 + templeConfig.baseHeight * 0.5 + 2.5, 0);
-  group.add(templeBase);
-
-  const columnSpan = templeConfig.baseWidth * 0.72;
-  const columnFrontZ = templeConfig.baseDepth * 0.32;
-
-  for (let i = 0; i < templeConfig.columnCount; i++) {
-    const t = templeConfig.columnCount <= 1 ? 0.5 : i / (templeConfig.columnCount - 1);
-    const cx = -columnSpan * 0.5 + t * columnSpan;
-    const colHeight = templeConfig.columnHeightBase + pseudoRandom(seed + i * 0.9) * templeConfig.columnHeightRandom;
-
-    const frontCol = new THREE.Mesh(
-      new THREE.CylinderGeometry(templeConfig.columnRadius, templeConfig.columnRadius, colHeight, 12),
-      new THREE.MeshStandardMaterial({
-        color: templeConfig.columnColor,
-        roughness: 0.32,
-        metalness: 0.12
-      })
+  // 上面の割れ目（発光する亀裂）
+  const crackMat = new THREE.MeshBasicMaterial({
+    color: islandConfig.crackColor,
+    transparent: true,
+    opacity: islandConfig.crackOpacity,
+    depthWrite: false
+  });
+  for (let i = 0; i < islandConfig.crackCount; i++) {
+    const crack = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        islandConfig.crackWidth,
+        0.6,
+        radiusTop * (0.7 + pseudoRandom(seed + i * 0.23) * 0.6)
+      ),
+      crackMat
     );
-    frontCol.position.set(cx, templeBase.position.y + colHeight * 0.5, columnFrontZ);
-    group.add(frontCol);
-
-    const backCol = frontCol.clone();
-    backCol.position.z = -columnFrontZ;
-    group.add(backCol);
+    crack.position.set(
+      (pseudoRandom(seed + i * 0.5) - 0.5) * radiusTop * 0.8,
+      y + thickness * 0.5 + 0.4,
+      (pseudoRandom(seed + i * 0.7) - 0.5) * radiusTop * 0.4
+    );
+    crack.rotation.y = pseudoRandom(seed + i * 0.9) * Math.PI;
+    crack.userData.kind = 'ruinFracture';
+    crack.userData.pulseSeed = seed * 0.4 + i * 0.6;
+    crack.userData.baseOpacity = islandConfig.crackOpacity;
+    group.add(crack);
   }
 
-  const roofY = templeBase.position.y + templeConfig.columnHeightBase + templeConfig.roofHeight * 0.6;
-  const roof = new THREE.Mesh(
-    new THREE.BoxGeometry(templeConfig.roofWidth, templeConfig.roofHeight, templeConfig.roofDepth),
+  // 露出した構造フレーム（裏側）
+  group.add(createExposedFrame(seed, radiusTop, thickness, y, ruinConfig, deps));
+
+  // 崩れた尖塔
+  group.add(createRuinSpire(seed, y + thickness * 0.5, ruinConfig, deps));
+
+  // 浮遊するエネルギーコア（島の上空でゆらぎ＋発光脈動）
+  const core = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(coreConfig.radius, 0),
     new THREE.MeshStandardMaterial({
-      color: templeConfig.roofColor,
-      emissive: templeConfig.roofEmissive,
-      emissiveIntensity: templeConfig.roofEmissiveIntensity,
-      roughness: 0.4,
-      metalness: 0.18
+      color: coreConfig.color,
+      emissive: coreConfig.emissive,
+      emissiveIntensity: coreConfig.emissiveIntensity,
+      transparent: true,
+      opacity: 0.92,
+      flatShading: true
     })
   );
-  roof.position.set(0, roofY, 0);
-  group.add(roof);
+  const coreY = y + thickness * 0.5 + coreConfig.yOffset;
+  core.position.set(0, coreY, 0);
+  core.userData.kind = 'ruinCore';
+  core.userData.floatSeed = seed * 0.47;
+  core.userData.baseY = coreY;
+  core.userData.baseEmissive = coreConfig.emissiveIntensity;
+  group.add(core);
 
-  const stairs = new THREE.Mesh(
-    new THREE.BoxGeometry(templeConfig.stairWidth, templeConfig.stairHeight, templeConfig.stairDepth),
-    new THREE.MeshStandardMaterial({ color: templeConfig.stairColor, roughness: 0.5 })
-  );
-  stairs.position.set(0, templeBase.position.y - templeConfig.baseHeight * 0.45, templeConfig.baseDepth * 0.57);
-  group.add(stairs);
-
-  const halo = new THREE.Mesh(
-    new THREE.TorusGeometry(templeConfig.haloRadius, templeConfig.haloTube, 10, 40),
+  const coreHalo = new THREE.Mesh(
+    new THREE.SphereGeometry(coreConfig.radius * 2.2, 12, 12),
     new THREE.MeshBasicMaterial({
-      color: templeConfig.haloColor,
+      color: coreConfig.haloColor,
       transparent: true,
-      opacity: templeConfig.haloOpacity,
+      opacity: coreConfig.haloOpacity,
       depthWrite: false
     })
   );
-  halo.rotation.x = Math.PI * 0.5;
-  halo.position.set(0, roofY + 12, 0);
-  halo.userData.kind = 'heavenHalo';
-  halo.userData.spinSeed = seed * 0.21;
-  halo.userData.baseOpacity = templeConfig.haloOpacity;
-  group.add(halo);
-
-  const rearHalo = new THREE.Mesh(
-    new THREE.TorusGeometry(templeConfig.rearHaloRadius, templeConfig.rearHaloTube, 12, 48),
-    new THREE.MeshBasicMaterial({
-      color: templeConfig.rearHaloColor,
-      transparent: true,
-      opacity: templeConfig.rearHaloOpacity,
-      depthWrite: false
-    })
-  );
-  rearHalo.position.set(0, roofY + 13.5, -3);
-  rearHalo.userData.kind = 'heavenRearHalo';
-  rearHalo.userData.spinSeed = seed * 0.17;
-  rearHalo.userData.baseOpacity = templeConfig.rearHaloOpacity;
-  group.add(rearHalo);
-
-  const veil = new THREE.Mesh(
-    new THREE.PlaneGeometry(templeConfig.veilWidth, templeConfig.veilHeight),
-    new THREE.MeshBasicMaterial({
-      color: templeConfig.veilColor,
-      transparent: true,
-      opacity: templeConfig.veilOpacity,
-      depthWrite: false,
-      side: THREE.DoubleSide
-    })
-  );
-  veil.position.set(0, roofY + 8, -6);
-  veil.userData.kind = 'heavenVeil';
-  veil.userData.floatSeed = seed * 0.25;
-  veil.userData.baseY = roofY + 8;
-  veil.userData.baseOpacity = templeConfig.veilOpacity;
-  group.add(veil);
-
-  const lightfallA = new THREE.Mesh(
-    new THREE.PlaneGeometry(templeConfig.lightfallWidth, templeConfig.lightfallHeight),
-    new THREE.MeshBasicMaterial({
-      color: templeConfig.lightfallColor,
-      transparent: true,
-      opacity: templeConfig.lightfallOpacity,
-      depthWrite: false,
-      side: THREE.DoubleSide
-    })
-  );
-  lightfallA.position.set(0, y - thickness * 0.15, 0);
-  lightfallA.userData.kind = 'heavenLightfall';
-  lightfallA.userData.floatSeed = seed * 0.29;
-  lightfallA.userData.baseOpacity = templeConfig.lightfallOpacity;
-  group.add(lightfallA);
-
-  const lightfallB = lightfallA.clone();
-  lightfallB.rotation.y = Math.PI * 0.5;
-  lightfallB.userData.floatSeed = seed * 0.29 + 0.7;
-  group.add(lightfallB);
-
-  const orb = new THREE.Mesh(
-    new THREE.SphereGeometry(templeConfig.orbRadius, 14, 14),
-    new THREE.MeshStandardMaterial({
-      color: templeConfig.orbColor,
-      emissive: templeConfig.orbEmissive,
-      emissiveIntensity: templeConfig.orbEmissiveIntensity,
-      transparent: true,
-      opacity: 0.9
-    })
-  );
-  orb.position.set(0, roofY + 10, 0);
-  orb.userData.kind = 'heavenOrb';
-  orb.userData.floatSeed = seed * 0.47;
-  orb.userData.baseY = roofY + 10;
-  orb.userData.baseEmissive = templeConfig.orbEmissiveIntensity;
-  group.add(orb);
+  coreHalo.position.copy(core.position);
+  coreHalo.userData.kind = 'ruinCore';
+  coreHalo.userData.floatSeed = seed * 0.47;
+  coreHalo.userData.baseY = coreY;
+  group.add(coreHalo);
 
   group.position.set(x, 0, z);
+  group.userData.islandY = y;
   return group;
 }
 
-function createHeavenBridge(seed, z, span, y, heavenConfig, deps) {
-  const { THREE } = deps;
-  const bridgeConfig = heavenConfig.bridge;
-  const bridgeGroup = new THREE.Group();
-
-  const deck = new THREE.Mesh(
-    new THREE.BoxGeometry(span * 2, bridgeConfig.deckHeight, bridgeConfig.deckDepth),
-    new THREE.MeshBasicMaterial({
-      color: bridgeConfig.deckColor,
-      transparent: true,
-      opacity: bridgeConfig.deckOpacity
-    })
-  );
-  deck.position.set(0, y + bridgeConfig.yOffset, z);
-  bridgeGroup.add(deck);
-
-  const railMat = new THREE.MeshBasicMaterial({
-    color: bridgeConfig.railColor,
-    transparent: true,
-    opacity: bridgeConfig.railOpacity
-  });
-
-  const rail1 = new THREE.Mesh(new THREE.BoxGeometry(span * 2, 0.55, 0.9), railMat);
-  rail1.position.set(0, y + bridgeConfig.yOffset + 1.4, z + bridgeConfig.deckDepth * 0.45);
-  rail1.userData.kind = 'heavenBridgeRail';
-  rail1.userData.pulseSeed = seed * 0.18;
-  rail1.userData.baseOpacity = bridgeConfig.railOpacity;
-  bridgeGroup.add(rail1);
-
-  const rail2 = rail1.clone();
-  rail2.position.z = z - bridgeConfig.deckDepth * 0.45;
-  rail2.userData.pulseSeed = seed * 0.18 + 0.8;
-  bridgeGroup.add(rail2);
-
-  return bridgeGroup;
-}
-
-function createHeavenRoadsideMonument(seed, z, side, roadX, y, heavenConfig, deps) {
+/**
+ * 浮遊する瓦礫群（インスタンス化した八面体シャード）を作ります。
+ */
+function createDebrisField(seed, z, metrics, ruinConfig, deps) {
   const { THREE, pseudoRandom } = deps;
-  const roadsideConfig = heavenConfig.roadside;
+  const debrisConfig = ruinConfig.debris;
   const group = new THREE.Group();
 
-  const isObelisk = seed % 2 === 0;
+  const baseGeometry = new THREE.OctahedronGeometry(1, 0);
+  const material = new THREE.MeshStandardMaterial({
+    color: debrisConfig.color,
+    emissive: debrisConfig.emissive,
+    emissiveIntensity: debrisConfig.emissiveIntensity,
+    metalness: 0.7,
+    roughness: 0.6,
+    flatShading: true
+  });
 
-  if (isObelisk) {
-    const obeliskHeight =
-      roadsideConfig.obeliskHeightBase +
-      pseudoRandom(seed + 0.17) * roadsideConfig.obeliskHeightRandom;
+  const instances = new THREE.InstancedMesh(baseGeometry, material, debrisConfig.count);
+  instances.instanceMatrix.setUsage(THREE.StaticDrawUsage);
 
-    const shaft = new THREE.Mesh(
-      new THREE.CylinderGeometry(
-        roadsideConfig.obeliskRadiusTop,
-        roadsideConfig.obeliskRadiusBottom,
-        obeliskHeight,
-        8
-      ),
-      new THREE.MeshStandardMaterial({
-        color: roadsideConfig.obeliskColor,
-        emissive: roadsideConfig.obeliskEmissive,
-        emissiveIntensity: roadsideConfig.obeliskEmissiveIntensity,
-        metalness: 0.18,
-        roughness: 0.35
-      })
-    );
-    shaft.position.set(0, obeliskHeight * 0.5, 0);
-    group.add(shaft);
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const position = new THREE.Vector3();
+  const scale = new THREE.Vector3();
+  const euler = new THREE.Euler();
 
-    const crown = new THREE.Mesh(
-      new THREE.SphereGeometry(2.2, 12, 12),
-      new THREE.MeshStandardMaterial({
-        color: roadsideConfig.crownColor,
-        emissive: roadsideConfig.crownEmissive,
-        emissiveIntensity: roadsideConfig.crownEmissiveIntensity,
-        transparent: true,
-        opacity: 0.92
-      })
-    );
-    crown.position.set(0, obeliskHeight + 2.8, 0);
-    crown.userData.kind = 'heavenRoadCrown';
-    crown.userData.pulseSeed = seed * 0.23;
-    crown.userData.baseEmissive = roadsideConfig.crownEmissiveIntensity;
-    group.add(crown);
+  const spread = Math.max(debrisConfig.spreadXMin, metrics.width * debrisConfig.spreadXMultiplier);
 
-    const halo = new THREE.Mesh(
-      new THREE.TorusGeometry(roadsideConfig.haloRadius, roadsideConfig.haloTube, 8, 28),
-      new THREE.MeshBasicMaterial({
-        color: roadsideConfig.haloColor,
-        transparent: true,
-        opacity: roadsideConfig.haloOpacity,
-        depthWrite: false
-      })
+  for (let i = 0; i < debrisConfig.count; i++) {
+    const s = debrisConfig.sizeBase + pseudoRandom(seed + i * 0.11) * debrisConfig.sizeRandom;
+    position.set(
+      (pseudoRandom(seed + i * 0.21) - 0.5) * spread,
+      debrisConfig.yBase + pseudoRandom(seed + i * 0.31) * debrisConfig.ySpread,
+      z + (pseudoRandom(seed + i * 0.41) - 0.5) * debrisConfig.spreadZ
     );
-    halo.rotation.x = Math.PI * 0.5;
-    halo.position.set(0, obeliskHeight + 4.4, 0);
-    halo.userData.kind = 'heavenRoadHalo';
-    halo.userData.pulseSeed = seed * 0.31;
-    halo.userData.baseOpacity = roadsideConfig.haloOpacity;
-    group.add(halo);
-  } else {
-    const wing = new THREE.Mesh(
-      new THREE.BoxGeometry(
-        roadsideConfig.wingWidth,
-        roadsideConfig.wingHeight,
-        roadsideConfig.wingDepth
-      ),
-      new THREE.MeshStandardMaterial({
-        color: roadsideConfig.wingColor,
-        emissive: roadsideConfig.wingEmissive,
-        emissiveIntensity: roadsideConfig.wingEmissiveIntensity,
-        transparent: true,
-        opacity: 0.9,
-        metalness: 0.1,
-        roughness: 0.28
-      })
+    euler.set(
+      pseudoRandom(seed + i * 0.5) * Math.PI,
+      pseudoRandom(seed + i * 0.6) * Math.PI,
+      pseudoRandom(seed + i * 0.7) * Math.PI
     );
-    wing.rotation.z = side < 0 ? Math.PI * 0.18 : -Math.PI * 0.18;
-    wing.position.set(0, roadsideConfig.wingHeight * 0.55, 0);
-    wing.userData.kind = 'heavenRoadWing';
-    wing.userData.pulseSeed = seed * 0.19;
-    wing.userData.baseEmissive = roadsideConfig.wingEmissiveIntensity;
-    group.add(wing);
-
-    const bannerColor = side < 0 ? roadsideConfig.bannerColorA : roadsideConfig.bannerColorB;
-    const banner = new THREE.Mesh(
-      new THREE.PlaneGeometry(roadsideConfig.bannerWidth, roadsideConfig.bannerHeight),
-      new THREE.MeshBasicMaterial({
-        color: bannerColor,
-        transparent: true,
-        opacity: roadsideConfig.bannerOpacity,
-        side: THREE.DoubleSide,
-        depthWrite: false
-      })
-    );
-    banner.position.set(side < 0 ? -4.2 : 4.2, roadsideConfig.wingHeight * 0.65, 0);
-    banner.userData.kind = 'heavenRoadBanner';
-    banner.userData.pulseSeed = seed * 0.29;
-    banner.userData.baseOpacity = roadsideConfig.bannerOpacity;
-    group.add(banner);
+    quaternion.setFromEuler(euler);
+    scale.set(s, s * (0.6 + pseudoRandom(seed + i * 0.8) * 0.8), s);
+    matrix.compose(position, quaternion, scale);
+    instances.setMatrixAt(i, matrix);
   }
+  instances.instanceMatrix.needsUpdate = true;
 
-  group.position.set(side * roadX, y, z);
+  instances.userData.kind = 'ruinDebris';
+  instances.userData.spinSeed = seed * 0.19;
+  instances.userData.baseY = 0;
+  group.add(instances);
+
   return group;
 }
 
-function createHeavenCloud(seed, z, metrics, heavenConfig, deps) {
-  const { THREE, pseudoRandom } = deps;
-  const cloudConfig = heavenConfig.cloud;
-  const width = cloudConfig.widthBase + pseudoRandom(seed + 0.1) * cloudConfig.widthRandom;
-  const height = cloudConfig.heightBase + pseudoRandom(seed + 0.2) * cloudConfig.heightRandom;
-  const xRange = Math.max(260, metrics.width * cloudConfig.xRangeMultiplier);
-  const x = (pseudoRandom(seed + 0.3) * 2 - 1) * xRange;
-  const y = cloudConfig.yBase + pseudoRandom(seed + 0.4) * cloudConfig.yRandom;
-  const opacity = cloudConfig.opacityBase + pseudoRandom(seed + 0.5) * cloudConfig.opacityRandom;
-
-  const cloud = new THREE.Mesh(
-    new THREE.PlaneGeometry(width, height),
-    new THREE.MeshBasicMaterial({
-      color: cloudConfig.color,
-      transparent: true,
-      opacity,
-      depthWrite: false,
-      side: THREE.DoubleSide
-    })
-  );
-
-  cloud.position.set(x, y, z);
-  cloud.rotation.y = pseudoRandom(seed + 0.6) * Math.PI;
-  cloud.userData.kind = 'heavenCloud';
-  cloud.userData.baseX = x;
-  cloud.userData.baseY = y;
-  cloud.userData.floatSeed = seed * 0.39;
-  cloud.userData.driftSpeed = cloudConfig.driftSpeedBase + pseudoRandom(seed + 0.7) * cloudConfig.driftSpeedRandom;
-  cloud.userData.xLimit = xRange;
-  cloud.userData.baseOpacity = opacity;
-
-  return cloud;
-}
-
-function createHeavenAurora(seed, z, metrics, heavenConfig, deps) {
+/**
+ * 空間に走るエネルギー亀裂（リフト）を作ります。ギザギザの発光板＋走査線。
+ */
+function createEnergyRift(seed, z, metrics, ruinConfig, deps) {
   const { THREE, pseudoRandom, getArrayColor } = deps;
-  const auroraConfig = heavenConfig.aurora;
-  const width = auroraConfig.widthBase + pseudoRandom(seed + 0.11) * auroraConfig.widthRandom;
-  const height = auroraConfig.heightBase + pseudoRandom(seed + 0.21) * auroraConfig.heightRandom;
-  const xRange = Math.max(240, metrics.width * auroraConfig.xRangeMultiplier);
-  const color = getArrayColor(auroraConfig.colors, seed, 0xe3f6ff);
-  const opacity = auroraConfig.opacityBase + pseudoRandom(seed + 0.31) * auroraConfig.opacityRandom;
+  const riftConfig = ruinConfig.rift;
+  const group = new THREE.Group();
 
-  const aurora = new THREE.Mesh(
-    new THREE.PlaneGeometry(width, height),
+  const color = getArrayColor(riftConfig.colors, seed, 0x8a5cff);
+  const height =
+    riftConfig.heightBase + pseudoRandom(seed + 0.12) * riftConfig.heightRandom;
+  const x =
+    (pseudoRandom(seed + 0.22) - 0.5) *
+    Math.max(riftConfig.xRangeMin, metrics.width * riftConfig.xRangeMultiplier);
+  const y = riftConfig.yBase + pseudoRandom(seed + 0.32) * riftConfig.yRandom;
+
+  // 亀裂本体（縦長の発光面）
+  const rift = new THREE.Mesh(
+    new THREE.PlaneGeometry(riftConfig.width, height),
     new THREE.MeshBasicMaterial({
       color,
       transparent: true,
-      opacity,
-      depthWrite: false,
-      side: THREE.DoubleSide
+      opacity: riftConfig.opacity,
+      side: THREE.DoubleSide,
+      depthWrite: false
     })
   );
+  rift.position.set(x, y, z);
+  rift.rotation.z = (pseudoRandom(seed + 0.42) - 0.5) * riftConfig.tilt;
+  rift.rotation.y = (pseudoRandom(seed + 0.52) - 0.5) * 0.6;
+  rift.userData.kind = 'ruinRift';
+  rift.userData.flickerSeed = seed * 0.61;
+  rift.userData.baseOpacity = riftConfig.opacity;
+  group.add(rift);
 
-  aurora.position.set(
-    (pseudoRandom(seed + 0.41) * 2 - 1) * xRange,
-    auroraConfig.yBase + pseudoRandom(seed + 0.51) * auroraConfig.yRandom,
-    z
+  // 亀裂の縁の稲妻ライン
+  const boltPts = [];
+  const segs = riftConfig.boltSegments;
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs;
+    boltPts.push(new THREE.Vector3(
+      x + (pseudoRandom(seed + i * 0.7) - 0.5) * riftConfig.width * 0.5,
+      y - height * 0.5 + t * height,
+      z + 0.5
+    ));
+  }
+  const bolt = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(boltPts),
+    new THREE.LineBasicMaterial({
+      color: riftConfig.boltColor,
+      transparent: true,
+      opacity: riftConfig.boltOpacity
+    })
   );
-  aurora.rotation.y = (pseudoRandom(seed + 0.61) * 2 - 1) * 0.5;
-  aurora.rotation.x = -0.08 + pseudoRandom(seed + 0.71) * 0.16;
-  aurora.userData.kind = 'heavenAurora';
-  aurora.userData.baseX = aurora.position.x;
-  aurora.userData.baseY = aurora.position.y;
-  aurora.userData.floatSeed = seed * 0.33;
-  aurora.userData.baseOpacity = opacity;
-  aurora.userData.driftSpeed = auroraConfig.driftSpeedBase + pseudoRandom(seed + 0.81) * auroraConfig.driftSpeedRandom;
-  aurora.userData.swayAmplitude = auroraConfig.swayAmplitude;
-  aurora.userData.xLimit = xRange;
+  bolt.userData.kind = 'ruinRift';
+  bolt.userData.flickerSeed = seed * 0.61 + 0.4;
+  bolt.userData.baseOpacity = riftConfig.boltOpacity;
+  group.add(bolt);
 
-  return aurora;
+  return group;
 }
 
-function createHeavenMoteCluster(seed, z, metrics, heavenConfig, deps) {
-  const { THREE, pseudoRandom, getArrayColor } = deps;
-  const moteConfig = heavenConfig.motes;
+/**
+ * グリッチするホログラム看板（走査線付き）を作ります。
+ */
+function createGlitchHologram(seed, z, side, sideX, ruinConfig, deps) {
+  const { THREE, getArrayColor } = deps;
+  const holoConfig = ruinConfig.hologram;
   const group = new THREE.Group();
-  const baseX = (pseudoRandom(seed + 0.11) * 2 - 1) * Math.max(160, metrics.width * 0.45);
-  const baseY = 70 + pseudoRandom(seed + 0.21) * 110;
+  const color = getArrayColor(holoConfig.colors, seed, 0x2ff0ff);
 
-  for (let i = 0; i < moteConfig.count; i++) {
-    const color = getArrayColor(moteConfig.colors, i + seed, 0xffffff);
-    const opacity = moteConfig.opacityBase + pseudoRandom(seed + i * 0.13) * moteConfig.opacityRandom;
-    const size = moteConfig.sizeBase + pseudoRandom(seed + i * 0.27) * moteConfig.sizeRandom;
-    const mote = new THREE.Mesh(
-      new THREE.SphereGeometry(size, 8, 8),
-      new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity,
-        depthWrite: false
-      })
-    );
+  const panel = new THREE.Mesh(
+    new THREE.PlaneGeometry(holoConfig.width, holoConfig.height),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: holoConfig.baseOpacity,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    })
+  );
+  const px = side * (sideX - holoConfig.xInset);
+  panel.position.set(px, holoConfig.y, z);
+  panel.rotation.y = side < 0 ? Math.PI * 0.16 : -Math.PI * 0.16;
+  panel.userData.kind = 'ruinHologram';
+  panel.userData.glitchSeed = seed * 0.27;
+  panel.userData.baseOpacity = holoConfig.baseOpacity;
+  panel.userData.baseX = px;
+  group.add(panel);
 
-    mote.position.set(
-      baseX + (pseudoRandom(seed + i * 0.31) * 2 - 1) * moteConfig.spreadX,
-      baseY + (pseudoRandom(seed + i * 0.41) * 2 - 1) * moteConfig.spreadY,
-      z + (pseudoRandom(seed + i * 0.51) * 2 - 1) * moteConfig.spreadZ
+  // 走査線（横に流れる細い帯）
+  const scanMat = new THREE.MeshBasicMaterial({
+    color: holoConfig.scanColor,
+    transparent: true,
+    opacity: holoConfig.scanOpacity,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  });
+  for (let i = 0; i < holoConfig.scanCount; i++) {
+    const scan = new THREE.Mesh(
+      new THREE.PlaneGeometry(holoConfig.width * 0.98, holoConfig.scanThickness),
+      scanMat
     );
-    mote.userData.kind = 'heavenMote';
-    mote.userData.baseX = mote.position.x;
-    mote.userData.baseY = mote.position.y;
-    mote.userData.baseZ = mote.position.z;
-    mote.userData.floatSeed = seed * 0.37 + i * 0.17;
-    mote.userData.baseOpacity = opacity;
-    mote.userData.riseSpeed = moteConfig.riseSpeedBase + pseudoRandom(seed + i * 0.67) * moteConfig.riseSpeedRandom;
-    mote.userData.yReset = baseY - moteConfig.spreadY;
-    mote.userData.yTop = baseY + moteConfig.spreadY;
-    group.add(mote);
+    const localY = -holoConfig.height * 0.5 + (i / holoConfig.scanCount) * holoConfig.height;
+    scan.position.set(px, holoConfig.y + localY, z + 0.4);
+    scan.rotation.y = panel.rotation.y;
+    scan.userData.kind = 'ruinScanline';
+    scan.userData.baseY = holoConfig.y + localY;
+    scan.userData.scanSpan = holoConfig.height;
+    scan.userData.scanSpeed = holoConfig.scanSpeed * (0.7 + (i % 3) * 0.2);
+    scan.userData.scanBottom = holoConfig.y - holoConfig.height * 0.5;
+    group.add(scan);
   }
 
   return group;
 }
 
+/**
+ * 立ち昇る火の粉／火花を作ります。
+ */
+function createEmberStream(seed, z, metrics, ruinConfig, deps) {
+  const { THREE, pseudoRandom, getArrayColor } = deps;
+  const emberConfig = ruinConfig.embers;
+  const group = new THREE.Group();
+
+  const baseX = (pseudoRandom(seed + 0.11) * 2 - 1) * Math.max(160, metrics.width * 0.42);
+  const baseY = emberConfig.yBase + pseudoRandom(seed + 0.21) * emberConfig.yRandom;
+
+  for (let i = 0; i < emberConfig.count; i++) {
+    const color = getArrayColor(emberConfig.colors, i + seed, 0xff6a2a);
+    const opacity = emberConfig.opacityBase + pseudoRandom(seed + i * 0.13) * emberConfig.opacityRandom;
+    const size = emberConfig.sizeBase + pseudoRandom(seed + i * 0.27) * emberConfig.sizeRandom;
+
+    const ember = new THREE.Mesh(
+      new THREE.SphereGeometry(size, 6, 6),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false })
+    );
+    ember.position.set(
+      baseX + (pseudoRandom(seed + i * 0.31) * 2 - 1) * emberConfig.spreadX,
+      baseY + (pseudoRandom(seed + i * 0.41) * 2 - 1) * emberConfig.spreadY,
+      z + (pseudoRandom(seed + i * 0.51) * 2 - 1) * emberConfig.spreadZ
+    );
+    ember.userData.kind = 'ruinEmber';
+    ember.userData.baseX = ember.position.x;
+    ember.userData.baseZ = ember.position.z;
+    ember.userData.floatSeed = seed * 0.37 + i * 0.17;
+    ember.userData.baseOpacity = opacity;
+    ember.userData.riseSpeed = emberConfig.riseSpeedBase + pseudoRandom(seed + i * 0.67) * emberConfig.riseSpeedRandom;
+    ember.userData.yReset = baseY - emberConfig.spreadY;
+    ember.userData.yTop = baseY + emberConfig.spreadY;
+    group.add(ember);
+  }
+
+  return group;
+}
+
+/**
+ * 崩落した橋（途中で途切れ、断面が発光）を作ります。
+ */
+function createBrokenBridge(seed, z, span, y, ruinConfig, deps) {
+  const { THREE } = deps;
+  const bridgeConfig = ruinConfig.bridge;
+  const group = new THREE.Group();
+
+  const deckMat = new THREE.MeshStandardMaterial({
+    color: bridgeConfig.deckColor,
+    emissive: bridgeConfig.deckEmissive,
+    emissiveIntensity: bridgeConfig.deckEmissiveIntensity,
+    metalness: 0.6,
+    roughness: 0.6,
+    transparent: true,
+    opacity: bridgeConfig.deckOpacity,
+    flatShading: true
+  });
+
+  // 左右の残存デッキ（中央が欠落＝崩落）
+  const segLen = span * bridgeConfig.segmentRatio;
+  const left = new THREE.Mesh(new THREE.BoxGeometry(segLen, bridgeConfig.deckHeight, bridgeConfig.deckDepth), deckMat);
+  left.position.set(-span + segLen * 0.5, y + bridgeConfig.yOffset, z);
+  left.rotation.z = bridgeConfig.tilt;
+  group.add(left);
+
+  const right = new THREE.Mesh(new THREE.BoxGeometry(segLen, bridgeConfig.deckHeight, bridgeConfig.deckDepth), deckMat);
+  right.position.set(span - segLen * 0.5, y + bridgeConfig.yOffset, z);
+  right.rotation.z = -bridgeConfig.tilt;
+  group.add(right);
+
+  // 断面の発光縁
+  const edgeMat = new THREE.MeshBasicMaterial({
+    color: bridgeConfig.edgeColor,
+    transparent: true,
+    opacity: bridgeConfig.edgeOpacity
+  });
+  const edgeGeo = new THREE.BoxGeometry(1.2, bridgeConfig.deckHeight * 1.4, bridgeConfig.deckDepth * 1.05);
+  const leftEdge = new THREE.Mesh(edgeGeo, edgeMat);
+  leftEdge.position.set(-span + segLen, y + bridgeConfig.yOffset, z);
+  leftEdge.userData.kind = 'ruinBridgeEdge';
+  leftEdge.userData.pulseSeed = seed * 0.18;
+  leftEdge.userData.baseOpacity = bridgeConfig.edgeOpacity;
+  group.add(leftEdge);
+
+  const rightEdge = new THREE.Mesh(edgeGeo, edgeMat);
+  rightEdge.position.set(span - segLen, y + bridgeConfig.yOffset, z);
+  rightEdge.userData.kind = 'ruinBridgeEdge';
+  rightEdge.userData.pulseSeed = seed * 0.18 + 0.7;
+  rightEdge.userData.baseOpacity = bridgeConfig.edgeOpacity;
+  group.add(rightEdge);
+
+  // 中央に落下しかけの破片
+  const chunk = new THREE.Mesh(
+    new THREE.OctahedronGeometry(bridgeConfig.chunkSize, 0),
+    deckMat
+  );
+  chunk.position.set(0, y + bridgeConfig.yOffset - bridgeConfig.chunkDrop, z);
+  chunk.rotation.set(0.6, 0.4, 0.2);
+  group.add(chunk);
+
+  return group;
+}
+
+/**
+ * 頭上を覆うエネルギー嵐の帯（オーロラ状の発光カーテン）を作ります。
+ */
+function createStormBand(seed, z, metrics, ruinConfig, deps) {
+  const { THREE, pseudoRandom, getArrayColor } = deps;
+  const stormConfig = ruinConfig.storm;
+  const color = getArrayColor(stormConfig.colors, seed, 0x6a3cff);
+
+  const band = new THREE.Mesh(
+    new THREE.PlaneGeometry(
+      stormConfig.widthBase + pseudoRandom(seed + 0.11) * stormConfig.widthRandom,
+      stormConfig.heightBase + pseudoRandom(seed + 0.21) * stormConfig.heightRandom
+    ),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: stormConfig.opacityBase + pseudoRandom(seed + 0.31) * stormConfig.opacityRandom,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    })
+  );
+
+  const y = stormConfig.yBase + pseudoRandom(seed + 0.41) * stormConfig.yRandom;
+  const x = (pseudoRandom(seed + 0.51) * 2 - 1) * metrics.width * stormConfig.xRangeMultiplier;
+  band.position.set(x, y, z);
+  band.rotation.x = stormConfig.tiltX;
+  band.rotation.z = (pseudoRandom(seed + 0.61) - 0.5) * 0.3;
+  band.userData.kind = 'ruinStorm';
+  band.userData.floatSeed = seed * 0.33;
+  band.userData.baseY = y;
+  band.userData.baseOpacity = band.material.opacity;
+  band.userData.xLimit = metrics.width * stormConfig.xRangeMultiplier;
+  band.userData.driftSpeed = stormConfig.driftSpeedBase + pseudoRandom(seed + 0.71) * stormConfig.driftSpeedRandom;
+
+  return band;
+}
+
+// ── エントリポイント ─────────────────────────────────────────
+/**
+ * 「崩壊した天空都市」シーンを生成します。
+ * 従来の heavenTemple と同じ入口・設定ルート・レーン構造を踏襲しています。
+ */
 export function createHeavenTempleScenery(deps) {
-  const { THREE, CONFIG, pseudoRandom, getArrayColor, getBackgroundMetrics } = deps;
+  const { CONFIG, THREE, pseudoRandom, getBackgroundMetrics } = deps;
   const group = new THREE.Group();
   const metrics = getBackgroundMetrics();
-  const heavenConfig = CONFIG.sceneRefactor.heavenTemple;
-  const sceneryConfig = heavenConfig.scenery;
+  const ruinConfig = CONFIG.sceneRefactor.heavenTemple;
+  const sceneryConfig = ruinConfig.scenery;
 
   const sideX = Math.max(sceneryConfig.sideXMin, metrics.width * sceneryConfig.sideXWidthMultiplier);
   const laneCount = Math.max(
@@ -471,68 +601,45 @@ export function createHeavenTempleScenery(deps) {
 
   for (let i = 0; i < laneCount; i++) {
     const z = sceneryConfig.laneStartZ + i * sceneryConfig.laneSpacing;
-    const bridgeY =
-      CONFIG.sceneRefactor.heavenTemple.island.yBase +
-      metrics.heightFactor * CONFIG.sceneRefactor.heavenTemple.island.yHeightFactorMultiplier;
-    const roadX = Math.max(
-      heavenConfig.roadside.xMin,
-      sideX * heavenConfig.roadside.xMultiplier
-    );
 
-    const leftIsland = createHeavenTempleIsland(i * 2, z, -1, sideX, metrics.heightFactor, heavenConfig, deps);
-    const rightIsland = createHeavenTempleIsland(
+    const leftIsland = createRuinIsland(i * 2, z, -1, sideX, metrics.heightFactor, ruinConfig, deps);
+    const rightIsland = createRuinIsland(
       i * 2 + 1,
       z + sceneryConfig.rightIslandZOffset,
       1,
       sideX,
       metrics.heightFactor,
-      heavenConfig,
+      ruinConfig,
       deps
     );
-
     group.add(leftIsland);
     group.add(rightIsland);
 
+    const bridgeY = ruinConfig.island.yBase + metrics.heightFactor * ruinConfig.island.yHeightFactorMultiplier;
+
     if (i % sceneryConfig.bridgeEvery === 0) {
-      group.add(createHeavenBridge(i, z + sceneryConfig.bridgeZOffset, sideX * heavenConfig.bridge.widthScale, bridgeY, heavenConfig, deps));
+      group.add(createBrokenBridge(i, z + sceneryConfig.bridgeZOffset, sideX * ruinConfig.bridge.widthScale, bridgeY, ruinConfig, deps));
     }
 
-    if (i % sceneryConfig.roadsideEvery === 0) {
-      group.add(
-        createHeavenRoadsideMonument(
-          i * 2,
-          z + sceneryConfig.roadsideZOffset,
-          -1,
-          roadX,
-          bridgeY + 2,
-          heavenConfig,
-          deps
-        )
-      );
-      group.add(
-        createHeavenRoadsideMonument(
-          i * 2 + 1,
-          z + sceneryConfig.roadsideZOffset + 56,
-          1,
-          roadX,
-          bridgeY + 2,
-          heavenConfig,
-          deps
-        )
-      );
+    if (i % sceneryConfig.debrisEvery === 0) {
+      group.add(createDebrisField(i * 3 + 1, z + sceneryConfig.debrisZOffset, metrics, ruinConfig, deps));
     }
 
-    if (i % sceneryConfig.cloudEvery === 0) {
-      group.add(createHeavenCloud(i * 3 + 1, z + sceneryConfig.cloudZOffset, metrics, heavenConfig, deps));
-      group.add(createHeavenCloud(i * 3 + 2, z + sceneryConfig.cloudZOffset + 60, metrics, heavenConfig, deps));
+    if (i % sceneryConfig.riftEvery === 0) {
+      group.add(createEnergyRift(i * 5 + 1, z + sceneryConfig.riftZOffset, metrics, ruinConfig, deps));
     }
 
-    if (i % sceneryConfig.auroraEvery === 0) {
-      group.add(createHeavenAurora(i * 5 + 1, z - 20, metrics, heavenConfig, deps));
+    if (i % sceneryConfig.hologramEvery === 0) {
+      group.add(createGlitchHologram(i, z + sceneryConfig.hologramZOffset, -1, sideX, ruinConfig, deps));
+      group.add(createGlitchHologram(i + 5, z + sceneryConfig.hologramZOffset + 70, 1, sideX, ruinConfig, deps));
     }
 
-    if (i % sceneryConfig.moteEvery === 0) {
-      group.add(createHeavenMoteCluster(i * 7 + 1, z + 30, metrics, heavenConfig, deps));
+    if (i % sceneryConfig.emberEvery === 0) {
+      group.add(createEmberStream(i * 7 + 1, z + sceneryConfig.emberZOffset, metrics, ruinConfig, deps));
+    }
+
+    if (i % sceneryConfig.stormEvery === 0) {
+      group.add(createStormBand(i * 11 + 1, z + sceneryConfig.stormZOffset, metrics, ruinConfig, deps));
     }
   }
 
